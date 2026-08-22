@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2a78d6">
+  <title>Gestió Training</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <h1 id="topbarTitle">Avui</h1>
+    <button id="btnSettings" class="icon-btn" aria-label="Ajustos">⚙️</button>
+  </header>
+
+  <main id="main">
+    <section id="view-avui" class="view"></section>
+    <section id="view-pla" class="view hidden"></section>
+    <section id="view-rutines" class="view hidden"></section>
+    <section id="view-historial" class="view hidden"></section>
+    <section id="view-progres" class="view hidden"></section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-view="avui"><span class="tab-ico">🏠</span>Avui</button>
+    <button class="tab" data-view="pla"><span class="tab-ico">📅</span>Pla</button>
+    <button class="tab" data-view="rutines"><span class="tab-ico">📋</span>Rutines</button>
+    <button class="tab" data-view="historial"><span class="tab-ico">🕘</span>Històric</button>
+    <button class="tab" data-view="progres"><span class="tab-ico">📈</span>Progrés</button>
+  </nav>
+
+  <!-- Pantalla d'entrenament actiu -->
+  <div id="overlay-workout" class="overlay hidden"></div>
+
+  <!-- Editor de rutines -->
+  <div id="overlay-routine" class="overlay hidden"></div>
+
+  <!-- Ajustos -->
+  <div id="modal-settings" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2>Ajustos</h2>
+      <p class="muted">Les dades es guarden només en aquest dispositiu. Fes còpies de seguretat de tant en tant.</p>
+      <div class="stack">
+        <button id="btnExport" class="btn">⬇️ Exportar dades (JSON)</button>
+        <label class="btn" for="fileImport">⬆️ Importar còpia de seguretat</label>
+        <input type="file" id="fileImport" accept="application/json" hidden>
+        <button id="btnWipe" class="btn danger">🗑️ Esborrar totes les dades</button>
+      </div>
+      <button id="btnCloseSettings" class="btn primary full">Tancar</button>
+    </div>
+  </div>
+
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
