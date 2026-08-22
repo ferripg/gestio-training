@@ -10,7 +10,10 @@ Feta amb HTML + CSS + JavaScript pur — sense frameworks, sense build, sense se
 - **Rutines** — crea rutines reutilitzables amb exercicis de força (sèries × reps × pes) o cardio (distància + temps).
 - **Entrenament actiu** — pantalla per apuntar sèries mentre entrenes, amb cronòmetre; si tanques l'app, l'entrenament en curs es recupera.
 - **Històric** — totes les sessions fetes, amb detall i volum total.
-- **Progrés** — estadístiques (entrenaments del mes, ratxa de setmanes, volum), gràfica d'evolució per exercici, entrenaments per setmana i rècords personals.
+- **Progrés** — estadístiques (entrenaments del mes, ratxa de setmanes, volum), gràfica d'evolució per exercici, calendari de constància, entrenaments per setmana i rècords personals.
+- **Objectiu setmanal** — tries quants dies vols entrenar (⚙️ Ajustos) i veus l'anell de progrés a "Avui".
+- **Pes de l'última sessió** — en començar una rutina, es precarrega el que vas fer realment l'últim dia, amb la línia "Últim cop" com a referència a superar.
+- **Temporitzador de descans** — en marcar una sèrie com a feta, compte enrere configurable amb avís sonor i vibració.
 
 ## On es guarden les dades
 

@@ -227,6 +227,68 @@
     container.appendChild(svg);
   }
 
+  /* Calendari de constància (estil GitHub): counts = { 'YYYY-MM-DD': nSessions } */
+  function heatmap(container, counts) {
+    container.innerHTML = '';
+    const W = container.clientWidth || 320;
+    const cell = 12, gap = 3, left = 26, top = 18;
+    const weeks = Math.max(8, Math.floor((W - left - 4) / (cell + gap)));
+    const H = top + 7 * (cell + gap) + 2;
+
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+    const today = new Date();
+    const thisMon = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    thisMon.setDate(thisMon.getDate() - ((thisMon.getDay() + 6) % 7));
+
+    // Etiquetes de dia (files: dl, dc, dv)
+    [['Dl', 0], ['Dc', 2], ['Dv', 4]].forEach(([txt, row]) => {
+      const t = el('text', { x: left - 6, y: top + row * (cell + gap) + cell - 2, 'text-anchor': 'end', class: 'c-tick' });
+      t.textContent = txt;
+      svg.appendChild(t);
+    });
+
+    const tt = makeTooltip(container);
+    let lastMonth = -1;
+
+    for (let w = 0; w < weeks; w++) {
+      const monday = new Date(thisMon);
+      monday.setDate(monday.getDate() - (weeks - 1 - w) * 7);
+      const x = left + w * (cell + gap);
+
+      // Etiqueta de mes quan canvia
+      if (monday.getMonth() !== lastMonth) {
+        if (lastMonth !== -1 || w === 0) {
+          const t = el('text', { x, y: 10, 'text-anchor': 'start', class: 'c-tick' });
+          t.textContent = monday.toLocaleDateString('ca-ES', { month: 'short' }).replace('.', '');
+          svg.appendChild(t);
+        }
+        lastMonth = monday.getMonth();
+      }
+
+      for (let d = 0; d < 7; d++) {
+        const day = new Date(monday);
+        day.setDate(day.getDate() + d);
+        if (day > today) continue;
+        const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+        const n = counts[iso] || 0;
+        const cls = n === 0 ? 'c-hm0' : n === 1 ? 'c-hm1' : 'c-hm2';
+        const y = top + d * (cell + gap);
+        const rect = el('rect', { x, y, width: cell, height: cell, rx: 3, class: cls });
+        const show = () => {
+          const r = svg.getBoundingClientRect();
+          showTooltip(tt, container, (x + cell / 2) * (r.width / W), y * (r.height / H),
+            day.toLocaleDateString('ca-ES', { day: 'numeric', month: 'short' }),
+            n === 0 ? 'Sense entrenament' : n === 1 ? '1 entrenament' : `${n} entrenaments`);
+        };
+        rect.addEventListener('pointermove', show);
+        rect.addEventListener('pointerdown', show);
+        rect.addEventListener('pointerleave', () => tt.classList.add('hidden'));
+        svg.appendChild(rect);
+      }
+    }
+    container.appendChild(svg);
+  }
+
   // Estils de les marques (usen els tokens del tema)
   const style = document.createElement('style');
   style.textContent = `
@@ -237,9 +299,12 @@
     .c-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
     .c-bar { fill: var(--accent); }
     .c-cross { stroke: var(--baseline); stroke-width: 1; }
+    .c-hm0 { fill: var(--grid); }
+    .c-hm1 { fill: var(--accent); fill-opacity: 0.55; }
+    .c-hm2 { fill: var(--accent); }
     .c-endlabel { fill: var(--ink-2); font-size: 11px; font-weight: 600; font-family: inherit; }
   `;
   document.head.appendChild(style);
 
-  window.Charts = { lineChart, barChart };
+  window.Charts = { lineChart, barChart, heatmap };
 })();

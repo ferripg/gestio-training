@@ -14,7 +14,8 @@
       version: 1,
       routines: [],   // { id, name, items: [{id, name, mode, sets, reps, weight, dist, time}] }
       plan: { '1': '', '2': '', '3': '', '4': '', '5': '', '6': '', '0': '' },
-      sessions: []    // { id, date, start, end, routineName, entries: [...] }
+      sessions: [],   // { id, date, start, end, routineName, entries: [...] }
+      settings: { weeklyGoal: 3, restSecs: 90 }
     };
   }
 
@@ -25,6 +26,7 @@
       const d = JSON.parse(raw);
       if (!d || !Array.isArray(d.routines) || !Array.isArray(d.sessions)) return defaultData();
       d.plan = d.plan || defaultData().plan;
+      d.settings = Object.assign({ weeklyGoal: 3, restSecs: 90 }, d.settings || {});
       return d;
     } catch (e) {
       console.error('Error carregant dades', e);
@@ -145,6 +147,17 @@
     return km;
   }
 
+  // Última entrada registrada d'un exercici (per precarregar pesos reals)
+  function lastEntryFor(name) {
+    const sorted = [...data.sessions].sort((a, b) => b.date.localeCompare(a.date) || (b.start || 0) - (a.start || 0));
+    for (const s of sorted) {
+      for (const e of s.entries) {
+        if (e.name.toLowerCase() === name.toLowerCase()) return e;
+      }
+    }
+    return null;
+  }
+
   function updateExerciseDatalist() {
     let dl = $('#exNames');
     if (!dl) {
@@ -238,7 +251,39 @@
       html += `<button class="btn ghost full" id="btnFreeWorkout">＋ Entrenament lliure</button>`;
     }
 
-    html += `<div class="card"><h2>Aquesta setmana</h2><div class="row">${weekDots}</div></div>`;
+    // Anell d'objectiu setmanal: dies únics entrenats aquesta setmana vs objectiu
+    const goal = data.settings.weeklyGoal || 3;
+    const weekDays = new Set();
+    for (const s of data.sessions) {
+      const d = parseISO(s.date);
+      if (d >= weekStart && d <= new Date()) weekDays.add(s.date);
+    }
+    const done = weekDays.size;
+    const p = Math.min(done / goal, 1);
+    const R = 30, C = 2 * Math.PI * R;
+    const ringColor = p >= 1 ? 'var(--good)' : 'var(--accent)';
+    let goalMsg;
+    if (done >= goal) goalMsg = 'Objectiu complert! 🎉 Tot el que facis de més és regal.';
+    else if (goal - done === 1) goalMsg = 'Només et queda 1 dia. Va, que el tens! 💪';
+    else goalMsg = `Et queden ${goal - done} dies per complir l'objectiu.`;
+
+    html += `<div class="card">
+      <div class="row" style="gap:16px">
+        <svg width="76" height="76" viewBox="0 0 76 76" style="flex-shrink:0">
+          <circle cx="38" cy="38" r="${R}" fill="none" stroke="var(--grid)" stroke-width="7"></circle>
+          <circle cx="38" cy="38" r="${R}" fill="none" stroke="${ringColor}" stroke-width="7"
+            stroke-linecap="round" stroke-dasharray="${(C * p).toFixed(1)} ${C.toFixed(1)}"
+            transform="rotate(-90 38 38)"></circle>
+          <text x="38" y="44" text-anchor="middle" fill="var(--ink)"
+            style="font-size:17px;font-weight:700">${done}/${goal}</text>
+        </svg>
+        <div>
+          <h2 style="margin-bottom:2px">Objectiu setmanal</h2>
+          <p class="muted">${goalMsg}</p>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">${weekDots}</div>
+    </div>`;
 
     const last = [...data.sessions].sort((a, b) => b.date.localeCompare(a.date) || (b.start || 0) - (a.start || 0))[0];
     if (last) {
@@ -503,8 +548,17 @@
   }
 
   function entryFromItem(it) {
+    // Si l'exercici ja s'ha fet abans, precarreguem el que es va fer l'últim cop
+    const prev = lastEntryFor(it.name);
     if (it.mode === 'cardio') {
-      return { id: uid(), name: it.name, mode: 'cardio', dist: it.dist || 0, time: it.time || 0, done: false };
+      const base = prev && prev.mode === 'cardio' ? prev : it;
+      return { id: uid(), name: it.name, mode: 'cardio', dist: base.dist || 0, time: base.time || 0, done: false };
+    }
+    if (prev && prev.mode === 'forca' && prev.sets.length) {
+      return {
+        id: uid(), name: it.name, mode: 'forca',
+        sets: prev.sets.map(st => ({ reps: st.reps || 0, weight: st.weight || 0, done: false }))
+      };
     }
     const sets = [];
     for (let i = 0; i < (it.sets || 3); i++) {
@@ -523,6 +577,65 @@
   function closeWorkout() {
     $('#overlay-workout').classList.add('hidden');
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    stopRest();
+  }
+
+  /* ---- Temporitzador de descans entre sèries ---- */
+
+  let restEndsAt = null;
+  let restTicker = null;
+  let restHideTimeout = null;
+
+  function startRest() {
+    const secs = data.settings.restSecs || 0;
+    if (secs <= 0) return;
+    clearTimeout(restHideTimeout);
+    restEndsAt = Date.now() + secs * 1000;
+    $('#restPill').classList.remove('hidden', 'finished');
+    if (!restTicker) restTicker = setInterval(tickRest, 250);
+    tickRest();
+  }
+
+  function tickRest() {
+    if (!restEndsAt) return;
+    const left = Math.ceil((restEndsAt - Date.now()) / 1000);
+    if (left <= 0) {
+      // Descans acabat: so + vibració, i el pastilló s'amaga sol
+      clearInterval(restTicker); restTicker = null; restEndsAt = null;
+      $('#restTime').textContent = 'Descans acabat! 💥';
+      $('#restPill').classList.add('finished');
+      beep();
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      restHideTimeout = setTimeout(() => $('#restPill').classList.add('hidden'), 4000);
+      return;
+    }
+    const m = Math.floor(left / 60), s = left % 60;
+    $('#restTime').textContent = `Descans ${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function stopRest() {
+    clearInterval(restTicker); restTicker = null; restEndsAt = null;
+    clearTimeout(restHideTimeout);
+    const pill = $('#restPill');
+    if (pill) pill.classList.add('hidden');
+  }
+
+  function beep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.25].forEach(delay => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.001, ctx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + delay + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.18);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + 0.2);
+      });
+      setTimeout(() => ctx.close(), 800);
+    } catch (e) { /* sense àudio no passa res */ }
   }
 
   function updateTimer() {
@@ -547,6 +660,14 @@
       <p class="muted">${fmtDate(draft.date)}</p>`;
 
     draft.entries.forEach((e, i) => {
+      // Referència de l'últim cop, per saber què has de superar
+      const prev = lastEntryFor(e.name);
+      let prevTxt = '';
+      if (prev) {
+        prevTxt = prev.mode === 'cardio'
+          ? `${fmt(prev.dist)} km · ${fmt(prev.time)} min`
+          : prev.sets.map(st => st.weight ? `${st.reps}×${fmt(st.weight)}kg` : `${st.reps}`).join(' · ');
+      }
       html += `<div class="card">
         <div class="spread" style="margin-bottom:6px">
           <h3>${esc(e.name)}</h3>
@@ -554,7 +675,8 @@
             <span class="chip ${e.mode === 'cardio' ? 'cardio' : ''}">${e.mode === 'cardio' ? 'Cardio' : 'Força'}</span>
             <button class="btn small danger" data-rmex="${i}">✕</button>
           </div>
-        </div>`;
+        </div>
+        ${prevTxt ? `<p class="muted" style="font-size:0.78rem;margin-bottom:6px">Últim cop: ${prevTxt}</p>` : ''}`;
 
       if (e.mode === 'cardio') {
         html += `<div class="row">
@@ -625,6 +747,8 @@
         b.classList.toggle('on', st.done);
         b.closest('.set-row').classList.toggle('done', st.done);
         saveDraft();
+        if (st.done) startRest();
+        else stopRest();
       };
     });
     o.querySelectorAll('[data-cdone]').forEach(b => {
@@ -855,6 +979,12 @@
     </div>`;
 
     html += `<div class="card">
+      <h2>Constància</h2>
+      <p class="muted">Cada quadrat és un dia. No trenquis la cadena!</p>
+      <div class="chart-wrap" id="chartHeat"></div>
+    </div>`;
+
+    html += `<div class="card">
       <h2>Entrenaments per setmana</h2>
       <div class="chart-wrap" id="chartBars"></div>
     </div>`;
@@ -889,6 +1019,10 @@
 
     drawLineChart(sessions);
     drawBarChart(sessions);
+
+    const counts = {};
+    for (const s of sessions) counts[s.date] = (counts[s.date] || 0) + 1;
+    Charts.heatmap($('#chartHeat'), counts);
   }
 
   function drawLineChart(sessions) {
@@ -952,7 +1086,21 @@
   /* ========== Ajustos (exportar / importar / esborrar) ========== */
 
   function setupSettings() {
-    $('#btnSettings').onclick = () => $('#modal-settings').classList.remove('hidden');
+    $('#btnSettings').onclick = () => {
+      $('#setGoal').value = String(data.settings.weeklyGoal);
+      $('#setRest').value = String(data.settings.restSecs);
+      $('#modal-settings').classList.remove('hidden');
+    };
+
+    $('#setGoal').onchange = e => {
+      data.settings.weeklyGoal = Number(e.target.value) || 3;
+      saveData();
+      if (currentView === 'avui') render();
+    };
+    $('#setRest').onchange = e => {
+      data.settings.restSecs = Number(e.target.value);
+      saveData();
+    };
     $('#btnCloseSettings').onclick = () => $('#modal-settings').classList.add('hidden');
     $('#modal-settings').onclick = e => {
       if (e.target === $('#modal-settings')) $('#modal-settings').classList.add('hidden');
@@ -1017,6 +1165,11 @@
       if (currentView === 'progres') renderProgres();
     }, 200);
   });
+
+  $('#restPlus').onclick = () => {
+    if (restEndsAt) { restEndsAt += 30000; tickRest(); }
+  };
+  $('#restStop').onclick = stopRest;
 
   setupSettings();
   showView('avui');
