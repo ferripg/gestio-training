@@ -275,126 +275,56 @@ window.PROGRAM = {
   ],
 
   /* ---------- Dieta ----------
-     Tot es calcula a partir d'ALIMENTS amb quantitat: cada opció és una llista [aliment, quantitat].
-     kcal/prot són per la quantitat "per" de l'aliment (valors nutricionals estàndard). */
+     Model: REBOST (el menjar real de l'usuari) + REGISTRE per porcions + RECOMANACIÓ del que falta.
+     Cada aliment té UNA porció normal (1 iogurt, 1 scoop, 1 ou, 1 plat) amb kcal i proteïna
+     estàndard (BEDCA/USDA). L'usuari pot editar els valors amb l'etiqueta del seu producte.
+     role: prot (proteïna) · carb · fat · mix   cap: porcions màximes per àpat
+     meals: en quins àpats té sentit (per a la recomanació) */
   diet: {
-    intro: "Superàvit cada dia, no un dia sí i tres no. Toca un ingredient per treure'l si avui no l'has menjat.",
-    foods: {
-      iogurt:     { name: "Iogurt natural",              unit: "g",            per: 100, kcal: 61,  prot: 3.5 },
-      iogurtgrec: { name: "Iogurt grec natural",         unit: "g",            per: 100, kcal: 97,  prot: 9 },
-      maduixes:   { name: "Maduixes congelades",         unit: "g",            per: 100, kcal: 35,  prot: 0.7 },
-      chia:       { name: "Llavors de chia",             unit: "g",            per: 15,  kcal: 73,  prot: 2.5 },
-      whey:       { name: "Whey de maduixa",             unit: "scoop (30 g)", per: 1,   kcal: 120, prot: 24 },
-      creatina:   { name: "Creatina",                    unit: "g",            per: 5,   kcal: 0,   prot: 0 },
-      civada:     { name: "Civada",                      unit: "g",            per: 40,  kcal: 150, prot: 5.4 },
-      cacauet:    { name: "Crema de cacauet",            unit: "c.s. (15 g)",  per: 1,   kcal: 90,  prot: 3.8 },
-      llet:       { name: "Llet sencera",                unit: "ml",           per: 250, kcal: 160, prot: 8 },
-      platan:     { name: "Plàtan",                      unit: "peça",         per: 1,   kcal: 105, prot: 1.3 },
-      mel:        { name: "Mel",                         unit: "c.s.",         per: 1,   kcal: 60,  prot: 0 },
-      nous:       { name: "Nous o fruits secs",          unit: "g",            per: 30,  kcal: 190, prot: 5 },
-      datils:     { name: "Dàtils",                      unit: "peces",        per: 3,   kcal: 70,  prot: 0.5 },
-      pasta:      { name: "Pasta (pes en cru)",          unit: "g",            per: 100, kcal: 355, prot: 12.5 },
-      tonyina:    { name: "Tonyina en llauna",           unit: "llauna",       per: 1,   kcal: 100, prot: 15 },
-      pollastre:  { name: "Pollastre rostit",            unit: "g",            per: 100, kcal: 200, prot: 27 },
-      oli:        { name: "Oli d'oliva",                 unit: "c.s.",         per: 1,   kcal: 90,  prot: 0 },
-      tomaquet:   { name: "Tomàquet fregit",             unit: "g",            per: 50,  kcal: 40,  prot: 0.7 },
-      ou:         { name: "Ou",                          unit: "peça",         per: 1,   kcal: 75,  prot: 6.5 },
-      pa:         { name: "Pa integral",                 unit: "llesca",       per: 1,   kcal: 85,  prot: 3.5 },
-      formatge:   { name: "Formatge",                    unit: "g",            per: 30,  kcal: 110, prot: 7 },
-      alvocat:    { name: "Alvocat",                     unit: "meitat",       per: 1,   kcal: 115, prot: 1.5 },
-      hummus:     { name: "Hummus",                      unit: "g",            per: 50,  kcal: 90,  prot: 4 },
-      galldindi:  { name: "Gall dindi en llesques",      unit: "g",            per: 40,  kcal: 45,  prot: 8 },
-      arros:      { name: "Arròs precuit (bossa)",       unit: "g",            per: 125, kcal: 175, prot: 3.5 },
-      llegums:    { name: "Llegums de pot",              unit: "g",            per: 120, kcal: 130, prot: 8 },
-      sardines:   { name: "Sardines en llauna",          unit: "llauna",       per: 1,   kcal: 190, prot: 20 },
-      amanida:    { name: "Amanida en bossa",            unit: "g",            per: 100, kcal: 15,  prot: 1 },
-      fruita:     { name: "Peça de fruita",              unit: "peça",         per: 1,   kcal: 80,  prot: 0.5 },
-      platfora:   { name: "Plat combinat fora (estimació)", unit: "plat",      per: 1,   kcal: 800, prot: 35 },
-      platcasa:   { name: "Plat de casa (estimació)",    unit: "plat",         per: 1,   kcal: 400, prot: 20 }
-    },
-    slots: [
-      {
-        id: "esmorzar", name: "Esmorzar", time: "~8h", required: true,
-        options: [
-          { id: "e1", name: "El teu bol (+ civada i crema de cacauet)",
-            items: [["iogurt", 200], ["maduixes", 100], ["chia", 15], ["whey", 1], ["creatina", 5], ["civada", 40], ["cacauet", 1]],
-            how: "El bol de sempre: iogurt, maduixes, chia, whey i creatina. Afegeix-hi 40 g de civada i una cullerada de crema de cacauet. Si les quantitats no són les teves, digue-m'ho i les ajusto." },
-          { id: "e2", name: "Ous + torrades + formatge + llet",
-            items: [["ou", 2], ["pa", 2], ["formatge", 30], ["llet", 250]],
-            how: "2 ous batuts al microones 60-90 s, sobre 2 torrades amb formatge. Got de llet." }
-        ]
-      },
-      {
-        id: "migmati", name: "Mig matí", time: "~11h", required: true,
-        options: [
-          { id: "m1", name: "Llet + plàtan + nous",
-            items: [["llet", 250], ["platan", 1], ["nous", 30]],
-            how: "Per emportar a la feina. Zero preparació." },
-          { id: "m2", name: "Iogurt grec + mel + fruits secs",
-            items: [["iogurtgrec", 200], ["mel", 1], ["nous", 30]],
-            how: "Un iogurt grec gran, una cullerada de mel i un grapat de fruits secs." },
-          { id: "m3", name: "Batut extra (2n scoop del dia)",
-            items: [["llet", 300], ["whey", 1], ["civada", 50], ["platan", 1], ["cacauet", 1]],
-            how: "Només si l'esmorzar ha estat fluix o el pes no puja: 300 ml de llet, 1 scoop, 50 g de civada, plàtan i crema de cacauet a la batedora." }
-        ]
-      },
-      {
-        id: "dinar", name: "Dinar", time: "~14h", required: true,
-        options: [
-          { id: "d1", name: "Tàper de pasta + tonyina + oli",
-            items: [["pasta", 100], ["tonyina", 1], ["oli", 1], ["tomaquet", 50]],
-            how: "A la pasta del tàper: una llauna de tonyina escorreguda, un raig d'oli i tomàquet fregit si en tens." },
-          { id: "d2", name: "Arròs de bossa + llegums + ous",
-            items: [["arros", 125], ["llegums", 120], ["ou", 2], ["oli", 1]],
-            how: "Arròs de bossa al microones, mig pot de llegums escorregut, 2 ous durs, oli i sal. Es munta en 4 min." },
-          { id: "d3", name: "Menjo fora",
-            items: [["platfora", 1]],
-            how: "Plat amb proteïna (pollastre, ous, tonyina, llegums) + arròs, pasta o patata. Res d'amanida sola. Valor estimat." }
-        ]
-      },
-      {
-        id: "berenar", name: "Berenar", time: "~17-18h", required: true,
-        options: [
-          { id: "t1", name: "Entrepà de gall dindi + fruita",
-            items: [["pa", 2], ["galldindi", 40], ["oli", 1], ["fruita", 1]],
-            how: "Ideal 1-2 h abans d'entrenar." },
-          { id: "t2", name: "Fruits secs + dàtils + llet",
-            items: [["nous", 30], ["datils", 3], ["llet", 250]],
-            how: "Per quan no tens temps de res." },
-          { id: "t3", name: "Batut post-entreno de maduixa",
-            items: [["llet", 250], ["whey", 1], ["maduixes", 100], ["mel", 1]],
-            how: "En arribar d'entrenar: llet, 1 scoop, maduixes congelades i mel. Batedora 20 s. Substitueix el berenar els dies que entrenes tard." }
-        ]
-      },
-      {
-        id: "sopar", name: "Sopar", time: "~21h", required: true,
-        options: [
-          { id: "s1", name: "Ous remenats + pa + alvocat",
-            items: [["ou", 3], ["pa", 2], ["alvocat", 1], ["oli", 1]],
-            how: "3 ous batuts al microones 90 s (remena a la meitat). Pa i mig alvocat amb sal. Un bol per netejar." },
-          { id: "s2", name: "Pollastre rostit + amanida + hummus + pa",
-            items: [["pollastre", 150], ["amanida", 100], ["hummus", 50], ["pa", 2], ["oli", 1]],
-            how: "Un quart de pollastre rostit del súper, amanida de bossa, hummus per sucar el pa. Zero cuina." },
-          { id: "s3", name: "Sardines + pa amb tomàquet + formatge",
-            items: [["sardines", 1], ["pa", 2], ["oli", 1], ["formatge", 30]],
-            how: "Pa amb tomàquet i oli, sardines a sobre, un tros de formatge. 3 min." },
-          { id: "s4", name: "El que hi hagi + llet + iogurt grec",
-            items: [["platcasa", 1], ["llet", 250], ["iogurtgrec", 200]],
-            how: "Dia sense res: el que hi hagi a casa (valor estimat) i afegeix-hi un got de llet i un iogurt grec." }
-        ]
-      },
-      {
-        id: "extra", name: "Extra de nit", time: "opcional", required: false,
-        options: [
-          { id: "x1", name: "Bol proteic: iogurt grec + ½ whey + civada + nous",
-            items: [["iogurtgrec", 200], ["whey", 0.5], ["civada", 30], ["nous", 30]],
-            how: "Barreja mig scoop de whey amb el iogurt fins que quedi cremós; civada i nous a sobre." },
-          { id: "x2", name: "Llet + torrades amb crema de cacauet",
-            items: [["llet", 250], ["pa", 2], ["cacauet", 2]],
-            how: "El més ràpid que existeix, just abans d'anar a dormir." }
-        ]
-      }
+    intro: "Valors estàndard per porció. Si l'etiqueta del teu producte diu una altra cosa, edita'l al rebost.",
+    mealTimes: [
+      { id: "esmorzar", name: "Esmorzar",     until: 10.5 },
+      { id: "migmati",  name: "Mig matí",     until: 13 },
+      { id: "dinar",    name: "Dinar",        until: 16.5 },
+      { id: "berenar",  name: "Berenar",      until: 19.5 },
+      { id: "sopar",    name: "Sopar",        until: 23 },
+      { id: "extra",    name: "Extra de nit", until: 30 }
     ],
+    foods: {
+      iogurt:     { name: "Iogurt natural",      portion: "1 iogurt (125 g)",     kcal: 76,  prot: 4.4,  role: "prot", cap: 2, meals: ["esmorzar", "migmati", "berenar", "extra"] },
+      iogurtgrec: { name: "Iogurt grec",         portion: "1 iogurt (150 g)",     kcal: 145, prot: 13.5, role: "prot", cap: 1, meals: ["esmorzar", "migmati", "berenar", "sopar", "extra"] },
+      maduixes:   { name: "Maduixes congelades", portion: "grapat (100 g)",       kcal: 35,  prot: 0.7,  role: "carb", cap: 1, meals: ["esmorzar", "migmati", "berenar", "extra"] },
+      chia:       { name: "Llavors de chia",     portion: "1 c.s. (15 g)",        kcal: 73,  prot: 2.5,  role: "fat",  cap: 1, meals: ["esmorzar", "extra"] },
+      whey:       { name: "Whey de maduixa",     portion: "1 scoop (30 g)",       kcal: 120, prot: 24,   role: "prot", cap: 1, meals: ["esmorzar", "migmati", "berenar", "extra"] },
+      creatina:   { name: "Creatina",            portion: "5 g",                  kcal: 0,   prot: 0,    role: "mix",  cap: 1, meals: [] },
+      civada:     { name: "Civada",              portion: "mig got (40 g)",       kcal: 150, prot: 5.4,  role: "carb", cap: 2, meals: ["esmorzar", "migmati", "extra"] },
+      cacauet:    { name: "Crema de cacauet",    portion: "1 c.s. (15 g)",        kcal: 90,  prot: 3.8,  role: "fat",  cap: 2, meals: ["esmorzar", "migmati", "berenar", "extra"] },
+      llet:       { name: "Llet sencera",        portion: "1 got (250 ml)",       kcal: 160, prot: 8,    role: "mix",  cap: 1, meals: ["esmorzar", "migmati", "berenar", "sopar", "extra"] },
+      platan:     { name: "Plàtan",              portion: "1",                    kcal: 105, prot: 1.3,  role: "carb", cap: 1, meals: ["esmorzar", "migmati", "berenar"] },
+      mel:        { name: "Mel",                 portion: "1 c.s.",               kcal: 60,  prot: 0,    role: "carb", cap: 1, meals: ["esmorzar", "migmati", "berenar", "extra"] },
+      nous:       { name: "Fruits secs",         portion: "grapat (30 g)",        kcal: 190, prot: 5,    role: "fat",  cap: 1, meals: ["migmati", "berenar", "extra"] },
+      datils:     { name: "Dàtils",              portion: "3",                    kcal: 70,  prot: 0.5,  role: "carb", cap: 1, meals: ["migmati", "berenar"] },
+      pasta:      { name: "Pasta",               portion: "1 plat (100 g en cru)", kcal: 355, prot: 12.5, role: "carb", cap: 1, meals: ["dinar", "sopar"] },
+      arros:      { name: "Arròs precuit",       portion: "1 bossa (125 g)",      kcal: 175, prot: 3.5,  role: "carb", cap: 1, meals: ["dinar", "sopar"] },
+      tonyina:    { name: "Tonyina",             portion: "1 llauna",             kcal: 100, prot: 15,   role: "prot", cap: 2, meals: ["dinar", "sopar"] },
+      sardines:   { name: "Sardines",            portion: "1 llauna",             kcal: 190, prot: 20,   role: "prot", cap: 1, meals: ["dinar", "sopar"] },
+      pollastre:  { name: "Pollastre rostit",    portion: "1 tros (150 g)",       kcal: 300, prot: 40,   role: "prot", cap: 1, meals: ["dinar", "sopar"] },
+      ou:         { name: "Ou",                  portion: "1",                    kcal: 75,  prot: 6.5,  role: "prot", cap: 3, meals: ["esmorzar", "dinar", "sopar"] },
+      llegums:    { name: "Llegums de pot",      portion: "mig pot (120 g)",      kcal: 130, prot: 8,    role: "mix",  cap: 1, meals: ["dinar", "sopar"] },
+      galldindi:  { name: "Gall dindi",          portion: "3 llesques (40 g)",    kcal: 45,  prot: 8,    role: "prot", cap: 2, meals: ["esmorzar", "berenar", "sopar"] },
+      formatge:   { name: "Formatge",            portion: "tros (30 g)",          kcal: 110, prot: 7,    role: "fat",  cap: 2, meals: ["esmorzar", "berenar", "sopar", "extra"] },
+      pa:         { name: "Pa",                  portion: "1 llesca",             kcal: 85,  prot: 3.5,  role: "carb", cap: 3, meals: ["esmorzar", "berenar", "sopar", "extra"] },
+      oli:        { name: "Oli d'oliva",         portion: "1 c.s.",               kcal: 90,  prot: 0,    role: "fat",  cap: 1, meals: ["dinar", "sopar"] },
+      tomaquet:   { name: "Tomàquet fregit",     portion: "3 c.s. (50 g)",        kcal: 40,  prot: 0.7,  role: "carb", cap: 1, meals: ["dinar", "sopar"] },
+      alvocat:    { name: "Alvocat",             portion: "mig",                  kcal: 115, prot: 1.5,  role: "fat",  cap: 1, meals: ["esmorzar", "sopar"] },
+      hummus:     { name: "Hummus",              portion: "3 c.s. (50 g)",        kcal: 90,  prot: 4,    role: "mix",  cap: 1, meals: ["berenar", "sopar"] },
+      amanida:    { name: "Amanida de bossa",    portion: "1 bol",                kcal: 15,  prot: 1,    role: "carb", cap: 1, meals: ["dinar", "sopar"] },
+      fruita:     { name: "Fruita",              portion: "1 peça",               kcal: 80,  prot: 0.5,  role: "carb", cap: 1, meals: ["migmati", "berenar"] },
+      platcasa:   { name: "Plat de casa (estimació)", portion: "1 plat",         kcal: 400, prot: 20,   role: "mix",  cap: 1, meals: [] },
+      platfora:   { name: "Menjar fora (estimació)",  portion: "1 plat combinat", kcal: 800, prot: 35,  role: "mix",  cap: 1, meals: [] }
+    },
+    /* Rebost inicial: el que Ferran ha dit que menja (es pot canviar a l'app) */
+    defaultPantry: ["iogurt", "maduixes", "chia", "whey", "creatina", "civada", "cacauet", "llet", "platan", "pasta", "tonyina", "oli", "ou", "pa", "formatge", "nous", "fruita", "platcasa", "platfora"],
     extras: [
       { id: "sleep", name: "He dormit 7 h o més", short: "Son ≥7 h", detail: "El múscul es construeix dormint." },
       { id: "water", name: "Aigua ≥2 L", short: "Aigua", detail: "Amb la creatina, l'aigua importa més." }

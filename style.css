@@ -270,9 +270,10 @@ details summary { cursor: pointer; }
 .check-row + .check-row { border-top: 1px solid var(--grid); }
 
 .adh-dot {
-  width: 28px; height: 28px; line-height: 26px; border-radius: 50%; margin: 3px auto 0;
-  font-size: 0.78rem; font-weight: 600; border: 1px solid var(--border); background: var(--page); color: var(--ink-2);
+  width: 32px; height: 32px; line-height: 30px; border-radius: 50%; margin: 3px auto 0;
+  font-size: 0.66rem; font-weight: 600; border: 1px solid var(--border); background: var(--page); color: var(--ink-2);
 }
+.chip-btn b { font-weight: 700; }
 .adh-dot.good { background: var(--good-bg); border-color: var(--good); color: var(--good); }
 .adh-dot.half { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
 .adh-dot.low { color: var(--muted); }

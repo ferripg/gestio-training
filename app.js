@@ -33,7 +33,10 @@
       weights: [],    // { date, kg }
       diet: {},       // { 'YYYY-MM-DD': { slots: {slotId: optionId}, extras: {id: bool} } }
       program: { nextWorkout: 'A', levels: {}, loads: {}, restDone: {}, lastSummary: null, pv: P.meta.version },
-      shopping: {}    // { item: bool }
+      shopping: {},   // { item: bool }
+      pantry: P.diet.defaultPantry.slice(),  // ids d'aliments que l'usuari té/menja
+      customFoods: {},                       // { id: { name, portion, kcal, prot, ... } } productes propis o valors editats
+      combos: []                             // àpats habituals apresos: { id, name, items: [[food, qty]], count }
     };
   }
 
@@ -63,6 +66,9 @@
         d.program.pv = P.meta.version;
       }
       d.shopping = d.shopping || {};
+      d.pantry = Array.isArray(d.pantry) ? d.pantry : P.diet.defaultPantry.slice();
+      d.customFoods = d.customFoods || {};
+      d.combos = Array.isArray(d.combos) ? d.combos : [];
       d.version = 3;
       return d;
     } catch (e) {
@@ -361,83 +367,119 @@
     return { text: `Puges ${fmt(t)} kg/setmana: perfecte, dins de l'objectiu. No canviïs res.` };
   }
 
-  /* ========== Dieta (tot es calcula per ingredients amb quantitat) ========== */
+  /* ========== Dieta: rebost, registre per porcions i recomanació ========== */
 
-  // Normalitza el dia: slots[id] = { opt, excl: [] }, extras {}, adds [{food, qty}]
+  // Catàleg + productes propis + valors editats per l'usuari
+  function allFoods() {
+    const out = {};
+    for (const id in P.diet.foods) out[id] = Object.assign({}, P.diet.foods[id]);
+    for (const id in data.customFoods) out[id] = Object.assign(out[id] || { role: 'mix', cap: 2, meals: ['esmorzar', 'migmati', 'dinar', 'berenar', 'sopar', 'extra'] }, data.customFoods[id]);
+    return out;
+  }
+
+  // Dia de dieta: log = [{ food, qty, meal, t }], extras = { sleep, water, creatine }
   function dietDay(iso) {
-    if (!data.diet[iso]) data.diet[iso] = { slots: {}, extras: {}, adds: [] };
+    if (!data.diet[iso]) data.diet[iso] = { log: [], extras: {} };
     const d = data.diet[iso];
+    if (!Array.isArray(d.log)) d.log = [];
     if (!d.extras) d.extras = {};
-    if (!Array.isArray(d.adds)) d.adds = [];
-    for (const k in d.slots) {
-      if (typeof d.slots[k] === 'string') d.slots[k] = { opt: d.slots[k], excl: [] };
-      else if (d.slots[k] && !Array.isArray(d.slots[k].excl)) d.slots[k].excl = [];
-    }
     return d;
   }
 
-  function findOption(slotId, optId) {
-    const slot = P.diet.slots.find(s => s.id === slotId);
-    return slot ? slot.options.find(o => o.id === optId) : null;
-  }
-
-  function selectedOptId(sel) {
-    return typeof sel === 'string' ? sel : (sel && sel.opt) || null;
-  }
-
-  // kcal/prot d'una quantitat d'un aliment (valors per la quantitat "per")
-  function foodCalc(foodId, qty) {
-    const f = P.diet.foods[foodId];
-    if (!f) return { kcal: 0, prot: 0 };
-    const k = qty / f.per;
-    return { kcal: Math.round(f.kcal * k), prot: f.prot * k };
-  }
-
-  // Totals d'una opció descomptant els ingredients exclosos avui
-  function optionTotals(o, excl) {
+  function itemsTotals(items, foods) {
+    foods = foods || allFoods();
     let kcal = 0, prot = 0;
-    for (const [food, qty] of o.items) {
-      if (excl && excl.includes(food)) continue;
-      const c = foodCalc(food, qty);
-      kcal += c.kcal; prot += c.prot;
-    }
-    return { kcal, prot: Math.round(prot) };
+    for (const [id, qty] of items) { const f = foods[id]; if (!f) continue; kcal += f.kcal * qty; prot += f.prot * qty; }
+    return { kcal: Math.round(kcal), prot: Math.round(prot) };
   }
 
   function dietTotals(iso) {
     const day = data.diet[iso];
-    let kcal = 0, prot = 0;
-    if (!day) return { kcal, prot };
-    for (const slotId in day.slots) {
-      const sel = day.slots[slotId];
-      const o = findOption(slotId, selectedOptId(sel));
-      if (!o) continue;
-      const t = optionTotals(o, sel && sel.excl);
-      kcal += t.kcal; prot += t.prot;
-    }
-    for (const a of day.adds || []) { const c = foodCalc(a.food, a.qty); kcal += c.kcal; prot += c.prot; }
-    return { kcal, prot: Math.round(prot) };
+    if (!day || !Array.isArray(day.log)) return { kcal: 0, prot: 0 };
+    return itemsTotals(day.log.map(e => [e.food, e.qty]));
   }
 
-  // La creatina ja va dins d'algun àpat marcat avui?
   function creatineIncluded(iso) {
     const day = data.diet[iso];
-    if (!day) return false;
-    for (const slotId in day.slots) {
-      const sel = day.slots[slotId];
-      const o = findOption(slotId, selectedOptId(sel));
-      if (o && o.items.some(([f]) => f === 'creatina') && !((sel && sel.excl) || []).includes('creatina')) return true;
-    }
-    return (day.adds || []).some(a => a.food === 'creatina');
+    return !!(day && Array.isArray(day.log) && day.log.some(e => e.food === 'creatina'));
   }
 
-  // Fracció d'àpats obligatoris complerts (0..1)
+  // Fracció de l'objectiu de calories assolit (0..1)
   function dietAdherence(iso) {
-    const day = data.diet[iso];
-    const req = P.diet.slots.filter(s => s.required);
-    if (!day) return 0;
-    const done = req.filter(s => selectedOptId(day.slots[s.id])).length;
-    return done / req.length;
+    return Math.min(1, dietTotals(iso).kcal / computeTargets().kcal);
+  }
+
+  // Quin àpat toca ara segons l'hora
+  function nextMeal(now) {
+    now = now || new Date();
+    const h = now.getHours() + now.getMinutes() / 60;
+    const mt = P.diet.mealTimes;
+    let idx = mt.findIndex(m => h < m.until);
+    if (idx < 0) idx = mt.length - 1;
+    return Object.assign({ index: idx }, mt[idx]);
+  }
+
+  function logItems(iso, items, mealName) {
+    const day = dietDay(iso);
+    const t = new Date();
+    const hhmm = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+    for (const [food, qty] of items) day.log.push({ food, qty, meal: mealName || nextMeal().name, t: hhmm });
+    saveData();
+  }
+
+  // Desa (o reforça) un àpat habitual a partir d'una llista d'ítems
+  function saveCombo(items, name) {
+    const key = items.map(([f, q]) => `${f}:${q}`).sort().join(',');
+    const found = data.combos.find(c => c.items.map(([f, q]) => `${f}:${q}`).sort().join(',') === key);
+    if (found) { found.count++; saveData(); return found; }
+    const c = { id: uid(), name, items, count: 1 };
+    data.combos.push(c);
+    saveData();
+    return c;
+  }
+
+  function comboAutoName(items, foods) {
+    return items.slice().sort((a, b) => foods[b[0]].kcal * b[1] - foods[a[0]].kcal * a[1]).slice(0, 2).map(([f]) => foods[f].name).join(' + ');
+  }
+
+  // Recomanació: què menjar ARA, amb el rebost, per tancar el que falta avui.
+  // exclude: ids de combos o d'aliments a evitar (per a "Una altra idea")
+  function recommend(iso, exclude) {
+    exclude = exclude || [];
+    const foods = allFoods();
+    const T = computeTargets();
+    const tot = dietTotals(iso);
+    const R = T.kcal - tot.kcal, Pr = T.protein - tot.prot;
+    const nm = nextMeal();
+    const mainLeft = Math.max(1, Math.min(5, 5 - nm.index));
+    if (R <= 100) return { meal: nm, done: true, text: 'Objectiu d\'avui complert. Si tens gana: un got de llet o una fruita.' };
+    const kcalT = Math.max(300, Math.min(900, Math.round(R / mainLeft / 10) * 10));
+    const protT = Math.max(15, Math.min(45, Math.round(Pr / mainLeft)));
+    const why = `Et falten ${R} kcal i ${Math.max(0, Math.round(Pr))} g de proteïna, en ${mainLeft} àpat${mainLeft > 1 ? 's' : ''}.`;
+
+    // 1) Un àpat teu habitual que encaixi amb el que falta
+    const fit = (data.combos || []).map(c => ({ c, t: itemsTotals(c.items, foods) }))
+      .filter(x => !exclude.includes(x.c.id) && x.t.kcal >= kcalT * 0.7 && x.t.kcal <= kcalT * 1.35 && x.t.prot >= protT * 0.6)
+      .sort((a, b) => b.c.count - a.c.count)[0];
+    if (fit) return { meal: nm, items: fit.c.items, kcal: fit.t.kcal, prot: fit.t.prot, why, combo: fit.c, name: fit.c.name };
+
+    // 2) Muntar-lo amb el rebost: primer proteïna, després energia
+    const ok = id => foods[id] && !exclude.includes(id) && (foods[id].meals || []).includes(nm.id);
+    const ids = (data.pantry || []).filter(ok);
+    const qty = {};
+    let kcal = 0, prot = 0;
+    const add = id => { qty[id] = (qty[id] || 0) + 1; kcal += foods[id].kcal; prot += foods[id].prot; };
+    const canAdd = id => (qty[id] || 0) < (foods[id].cap || 1);
+    const density = id => foods[id].prot / Math.max(1, foods[id].kcal);
+    const byProt = ids.filter(id => foods[id].role === 'prot').sort((a, b) => density(b) - density(a));
+    let g = 0;
+    while (prot < protT && kcal < kcalT * 1.1 && g++ < 20) { const id = byProt.find(canAdd); if (!id) break; add(id); }
+    const byKcal = ids.filter(id => foods[id].role !== 'prot').sort((a, b) => foods[b].kcal - foods[a].kcal);
+    g = 0;
+    while (kcal < kcalT * 0.9 && g++ < 20) { const id = byKcal.find(x => canAdd(x) && kcal + foods[x].kcal <= kcalT * 1.2); if (!id) break; add(id); }
+    const items = Object.entries(qty);
+    if (!items.length) return { meal: nm, empty: true, why, text: 'No tinc res al teu rebost per a aquest àpat. Afegeix-hi aliments a "El meu rebost".' };
+    return { meal: nm, items, kcal: Math.round(kcal), prot: Math.round(prot), why };
   }
 
   /* ========== Navegació ========== */
@@ -552,26 +594,24 @@
       <p class="muted" style="margin-top:6px;font-size:0.78rem">Al matí, després del lavabo i abans d'esmorzar.</p>
     </div>`;
 
-    // Dieta d'avui: una fila per àpat, toca per anar-hi
+    // Dieta: on ets avui i què et toca ara
     const day = dietDay(today);
     const tot = dietTotals(today);
+    const rec = recommend(today);
+    const foodsNow = allFoods();
     const creat = creatineIncluded(today) || !!day.extras.creatine;
     html += `<div class="card">
       <div class="spread"><h2>🍽️ Dieta</h2><span class="muted">${tot.kcal} / ${T.kcal} kcal · ${tot.prot} / ${T.protein} g</span></div>
       <div class="bar"><div class="bar-fill" style="width:${Math.min(100, tot.kcal / T.kcal * 100)}%"></div></div>
-      <div style="margin-top:6px">
-        ${P.diet.slots.filter(s => s.required).map(s => {
-          const sel = day.slots[s.id];
-          const o = findOption(s.id, selectedOptId(sel));
-          const t = o ? optionTotals(o, sel.excl) : null;
-          return `<div class="check-row" data-goslot="${s.id}">
-            <span class="opt-check ${o ? 'on' : ''}">${o ? '✓' : ''}</span>
-            <div class="grow"><div>${esc(s.name)}</div>${o ? `<div class="muted" style="font-size:0.78rem">${esc(o.name)}</div>` : ''}</div>
-            <span class="muted">${t ? t.kcal : ''}</span>
-          </div>`;
-        }).join('')}
-      </div>
-      <div class="chips" style="margin-top:8px">
+      ${rec.done || rec.empty ? `<p class="muted" style="margin-top:8px">${esc(rec.text)}</p>` : `
+        <p style="margin-top:8px"><b>Ara toca: ${esc(rec.meal.name)}</b></p>
+        <div class="ex-line">${rec.items.map(([id, q]) => `${q > 1 ? q + '× ' : ''}${esc(foodsNow[id].name)}`).join(' · ')} <span class="muted">· ${rec.kcal} kcal · ${rec.prot} g</span></div>
+        <p class="muted" style="font-size:0.78rem">${esc(rec.why)}</p>
+        <div class="row" style="margin-top:8px">
+          <button class="btn small primary" id="btnEatRec">✓ Ho he menjat</button>
+          <button class="btn small" id="btnGoDiet">Registrar altres coses</button>
+        </div>`}
+      <div class="chips" style="margin-top:10px">
         <button class="chip-btn ${creat ? 'on' : ''}" data-extra="creatine">${creat ? '✓ ' : ''}Creatina</button>
         ${P.diet.extras.map(x => `<button class="chip-btn ${day.extras[x.id] ? 'on' : ''}" data-extra="${x.id}">${day.extras[x.id] ? '✓ ' : ''}${esc(x.short || x.name)}</button>`).join('')}
       </div>
@@ -638,10 +678,12 @@
       if (kg < 30 || kg > 200) return;
       saveWeight(kg); render();
     };
-    v.querySelectorAll('[data-goslot]').forEach(b => b.onclick = () => {
-      renderDieta.scrollTo = b.dataset.goslot;
-      showView('dieta');
-    });
+    if ($('#btnEatRec')) $('#btnEatRec').onclick = () => {
+      logItems(today, rec.items, rec.meal.name);
+      if (rec.combo) { rec.combo.count++; saveData(); }
+      render();
+    };
+    if ($('#btnGoDiet')) $('#btnGoDiet').onclick = () => showView('dieta');
     v.querySelectorAll('[data-extra]').forEach(b => b.onclick = () => {
       if (b.dataset.extra === 'creatine' && creatineIncluded(today)) return; // ja va al bol
       const d = dietDay(today);
@@ -814,6 +856,8 @@
     const T = computeTargets();
     const day = dietDay(today);
     const tot = dietTotals(today);
+    const foods = allFoods();
+    const rec = recommend(today, renderDieta.exclude || []);
     const creatAuto = creatineIncluded(today);
     const creat = creatAuto || !!day.extras.creatine;
 
@@ -823,46 +867,56 @@
       <div class="bar"><div class="bar-fill" style="width:${Math.min(100, tot.kcal / T.kcal * 100)}%"></div></div>
       <div class="spread" style="margin-top:8px"><span>Proteïna</span><b>${tot.prot} / ${T.protein} g</b></div>
       <div class="bar"><div class="bar-fill good" style="width:${Math.min(100, tot.prot / T.protein * 100)}%"></div></div>
-      <p class="muted" style="margin-top:8px;font-size:0.8rem">${esc(P.diet.intro)}</p>
     </div>`;
 
-    for (const slot of P.diet.slots) {
-      const sel = day.slots[slot.id];
-      const selId = selectedOptId(sel);
-      html += `<div class="card" id="slot-${slot.id}">
-        <div class="spread"><h2>${esc(slot.name)}</h2><span class="muted">${esc(slot.time)}</span></div>
-        ${slot.options.map(o => {
-          const on = selId === o.id;
-          const t = optionTotals(o, on ? sel.excl : []);
-          return `<div class="option ${on ? 'selected' : ''}" data-opt="${o.id}" data-slotid="${slot.id}">
-            <div class="row">
-              <span class="opt-check">${on ? '✓' : ''}</span>
-              <div class="grow">${esc(o.name)}</div>
-              <span class="muted" style="white-space:nowrap;font-size:0.8rem">${t.kcal} kcal · ${t.prot} g</span>
-            </div>
-            ${on ? `<div class="ings">${o.items.map(([f, q]) => {
-              const food = P.diet.foods[f];
-              const c = foodCalc(f, q);
-              const off = (sel.excl || []).includes(f);
-              return `<button class="ing ${off ? 'off' : ''}" data-ing="${f}" data-slotid="${slot.id}">${esc(food ? food.name : f)} · ${q} ${esc(food ? food.unit : '')} · ${c.kcal} kcal</button>`;
-            }).join('')}</div>` : ''}
-            ${o.how ? `<details><summary class="muted">Com es fa</summary><p class="muted" style="margin-top:4px">${esc(o.how)}</p></details>` : ''}
-          </div>`;
-        }).join('')}
-      </div>`;
+    // Recomanació
+    html += `<div class="card" style="border-color: var(--accent)">
+      <div class="spread"><h2>Ara toca: ${esc(rec.meal.name)}</h2>${rec.done || rec.empty ? '' : `<span class="muted">${rec.kcal} kcal · ${rec.prot} g</span>`}</div>
+      ${rec.done || rec.empty ? `<p class="muted">${esc(rec.text)}</p>` : `
+        ${rec.name ? `<p class="muted" style="font-size:0.8rem">El teu "${esc(rec.name)}"</p>` : ''}
+        ${rec.items.map(([id, q]) => `<div class="ex-line">• ${q}× <b>${esc(foods[id].name)}</b> <span class="muted">${esc(foods[id].portion)} · ${Math.round(foods[id].kcal * q)} kcal</span></div>`).join('')}
+        <p class="muted" style="font-size:0.78rem;margin-top:6px">${esc(rec.why)}</p>
+        <div class="row" style="margin-top:8px">
+          <button class="btn small primary" id="btnEatRec">✓ Ho he menjat</button>
+          <button class="btn small" id="btnOtherRec">Una altra idea</button>
+        </div>`}
+    </div>`;
+
+    // Registre d'avui agrupat per àpat
+    const groups = [];
+    day.log.forEach((e, i) => {
+      let g = groups.find(x => x.meal === (e.meal || ''));
+      if (!g) { g = { meal: e.meal || '', entries: [], items: [] }; groups.push(g); }
+      g.entries.push({ e, i });
+      g.items.push([e.food, e.qty]);
+    });
+    html += `<div class="card">
+      <div class="spread"><h2>Avui he menjat</h2><span class="muted">${tot.kcal} kcal · ${tot.prot} g</span></div>
+      ${day.log.length ? groups.map((g, gi) => `<div style="margin-top:8px">
+          <div class="spread"><b>${esc(g.meal || 'Àpat')}</b><span class="muted">${itemsTotals(g.items, foods).kcal} kcal</span></div>
+          ${g.entries.map(({ e, i }) => `<div class="check-row" style="cursor:default">
+            <span class="grow">${e.qty}× ${esc(foods[e.food] ? foods[e.food].name : e.food)} <span class="muted" style="font-size:0.78rem">${esc(e.t || '')}</span></span>
+            <span class="muted">${Math.round((foods[e.food] ? foods[e.food].kcal : 0) * e.qty)}</span>
+            <button class="btn tiny danger" data-rmlog="${i}">✕</button>
+          </div>`).join('')}
+          <button class="btn tiny" data-savecombo="${gi}">💾 Desa com a àpat habitual</button>
+        </div>`).join('') : `<p class="muted">Encara res. Toca els aliments de sota per registrar.</p>`}
+    </div>`;
+
+    // Els meus àpats habituals (un toc)
+    if (data.combos.length) {
+      html += `<div class="card"><h2>Els meus àpats</h2><div class="chips" style="margin-top:6px">
+        ${data.combos.slice().sort((a, b) => b.count - a.count).map(c => `<button class="chip-btn" data-combo="${c.id}">${esc(c.name)} · ${itemsTotals(c.items, foods).kcal}</button>`).join('')}
+      </div><p class="muted" style="font-size:0.75rem;margin-top:6px">Toca per registrar-lo sencer. Mantén premut per esborrar-lo.</p></div>`;
     }
 
-    // Afegits fora del pla
+    // Registrar: rebost com a xips (toca = 1 porció)
+    const countToday = {};
+    day.log.forEach(e => { countToday[e.food] = (countToday[e.food] || 0) + e.qty; });
     html += `<div class="card">
-      <h2>Alguna cosa més avui?</h2>
-      ${day.adds.map((a, i) => {
-        const f = P.diet.foods[a.food]; const c = foodCalc(a.food, a.qty);
-        return `<div class="check-row"><span class="grow">${esc(f ? f.name : a.food)} · ${a.qty} ${esc(f ? f.unit : '')}</span><span class="muted">${c.kcal} kcal</span><button class="btn tiny danger" data-rmadd="${i}">✕</button></div>`;
-      }).join('')}
-      <div class="row" style="margin-top:8px">
-        <select id="addFood" class="grow">${Object.entries(P.diet.foods).map(([id, f]) => `<option value="${id}">${esc(f.name)} (${f.per} ${esc(f.unit)})</option>`).join('')}</select>
-        <input type="number" id="addQty" inputmode="decimal" step="any" min="0" placeholder="quant." style="width:84px">
-        <button class="btn small primary" id="btnAddFood">＋</button>
+      <div class="spread"><h2>Registrar</h2><span class="muted">toca = 1 porció</span></div>
+      <div class="chips" style="margin-top:6px">
+        ${data.pantry.filter(id => foods[id]).map(id => `<button class="chip-btn ${countToday[id] ? 'on' : ''}" data-add="${id}" title="${esc(foods[id].portion)}">${esc(foods[id].name)}${countToday[id] ? ` <b>×${countToday[id]}</b>` : ''}</button>`).join('')}
       </div>
     </div>`;
 
@@ -871,7 +925,7 @@
       <h2>Cada dia</h2>
       <div class="check-row" data-extra="creatine">
         <span class="opt-check ${creat ? 'on' : ''}">${creat ? '✓' : ''}</span>
-        <div class="grow"><div>Creatina 5 g</div><div class="muted" style="font-size:0.78rem">${creatAuto ? 'Ja va dins de l\'àpat marcat' : 'Cada dia, també els de descans'}</div></div>
+        <div class="grow"><div>Creatina 5 g</div><div class="muted" style="font-size:0.78rem">${creatAuto ? 'Ja registrada avui' : 'Cada dia, també els de descans'}</div></div>
       </div>
       ${P.diet.extras.map(x => `<div class="check-row" data-extra="${x.id}">
         <span class="opt-check ${day.extras[x.id] ? 'on' : ''}">${day.extras[x.id] ? '✓' : ''}</span>
@@ -879,46 +933,69 @@
       </div>`).join('')}
     </div>`;
 
-    // Setmana: àpats complerts de 5
+    // Setmana: % de l'objectiu de kcal
     const mon = mondayOf(new Date());
     let dots = '';
     for (let i = 0; i < 7; i++) {
       const d = new Date(mon); d.setDate(d.getDate() + i);
       const iso = isoOf(d);
       const a = iso <= today ? dietAdherence(iso) : null;
-      const cls = a == null ? '' : a >= 0.8 ? 'good' : a >= 0.5 ? 'half' : 'low';
+      const cls = a == null ? '' : a >= 0.9 ? 'good' : a >= 0.6 ? 'half' : 'low';
       dots += `<div style="flex:1;text-align:center"><div class="muted" style="font-size:0.68rem">${DAY_SHORT[String(d.getDay())]}</div>
-        <div class="adh-dot ${cls} ${iso === today ? 'today' : ''}">${a == null ? '' : Math.round(a * 5)}</div></div>`;
+        <div class="adh-dot ${cls} ${iso === today ? 'today' : ''}">${a == null ? '' : Math.round(a * 100)}</div></div>`;
     }
-    html += `<div class="card"><div class="spread"><h2>Setmana</h2><span class="muted">àpats de 5</span></div><div class="row" style="margin-top:6px">${dots}</div></div>`;
+    html += `<div class="card"><div class="spread"><h2>Setmana</h2><span class="muted">% de les calories</span></div><div class="row" style="margin-top:6px">${dots}</div></div>`;
 
-    // Compra i trucs, plegats
-    const bought = P.diet.shopping.filter(i => data.shopping[i]).length;
+    // El meu rebost: catàleg + productes propis (valors de l'etiqueta)
     html += `<div class="card"><details>
-      <summary><b>🛒 Llista de la compra</b> <span class="muted">${bought}/${P.diet.shopping.length}</span></summary>
-      ${P.diet.shopping.map(i => `<div class="check-row" data-shop="${esc(i)}">
-        <span class="opt-check ${data.shopping[i] ? 'on' : ''}">${data.shopping[i] ? '✓' : ''}</span><span class="grow ${data.shopping[i] ? 'muted' : ''}">${esc(i)}</span>
-      </div>`).join('')}
-      <div class="stack" style="margin-bottom:0"><button class="btn small" id="btnResetShop">Reiniciar (nova setmana)</button></div>
+      <summary><b>🧺 El meu rebost</b> <span class="muted">${data.pantry.length} aliments</span></summary>
+      <p class="muted" style="font-size:0.78rem;margin:6px 0">${esc(P.diet.intro)} Marca el que tens a casa:</p>
+      <div class="chips">${Object.keys(foods).map(id => `<button class="chip-btn ${data.pantry.includes(id) ? 'on' : ''}" data-pantry="${id}">${esc(foods[id].name)}</button>`).join('')}</div>
+      <h3 style="margin:12px 0 6px">Afegir o editar un producte (valors de l'etiqueta)</h3>
+      <div class="stack" style="margin:0">
+        <select id="pfId"><option value="">— Producte nou —</option>${Object.keys(foods).map(id => `<option value="${id}">${esc(foods[id].name)}</option>`).join('')}</select>
+        <input type="text" id="pfName" placeholder="Nom (ex: Iogurt proteic Hacendado)">
+        <input type="text" id="pfPortion" placeholder="Porció (ex: 1 pot de 200 g)">
+        <div class="row"><input type="number" id="pfKcal" inputmode="numeric" placeholder="kcal per porció"><input type="number" id="pfProt" inputmode="decimal" step="0.1" placeholder="proteïna (g)"></div>
+        <button class="btn small primary" id="btnSaveFood">Desa al rebost</button>
+      </div>
     </details></div>`;
+
     html += `<div class="card"><details><summary><b>💡 Trucs</b></summary>${P.diet.tips.map(t => `<div class="ex-line">• ${esc(t)}</div>`).join('')}</details></div>`;
 
     v.innerHTML = html;
 
-    v.querySelectorAll('[data-opt]').forEach(el => el.onclick = ev => {
-      if (ev.target.closest('details, [data-ing]')) return;
-      const d = dietDay(today);
-      const cur = selectedOptId(d.slots[el.dataset.slotid]);
-      d.slots[el.dataset.slotid] = cur === el.dataset.opt ? null : { opt: el.dataset.opt, excl: [] };
-      saveData(); render();
+    if ($('#btnEatRec')) $('#btnEatRec').onclick = () => {
+      logItems(today, rec.items, rec.meal.name);
+      if (rec.combo) { rec.combo.count++; saveData(); }
+      renderDieta.exclude = [];
+      render();
+    };
+    if ($('#btnOtherRec')) $('#btnOtherRec').onclick = () => {
+      renderDieta.exclude = (renderDieta.exclude || []).concat(rec.combo ? [rec.combo.id] : [rec.items[0][0]]);
+      renderDieta();
+    };
+    v.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { logItems(today, [[b.dataset.add, 1]], nextMeal().name); renderDieta.exclude = []; render(); });
+    v.querySelectorAll('[data-rmlog]').forEach(b => b.onclick = () => { dietDay(today).log.splice(Number(b.dataset.rmlog), 1); saveData(); render(); });
+    v.querySelectorAll('[data-savecombo]').forEach(b => b.onclick = () => {
+      const g = groups[Number(b.dataset.savecombo)];
+      // agrupa per aliment
+      const merged = {};
+      g.items.forEach(([f, q]) => { merged[f] = (merged[f] || 0) + q; });
+      const items = Object.entries(merged);
+      saveCombo(items, comboAutoName(items, foods));
+      render();
     });
-    v.querySelectorAll('[data-ing]').forEach(el => el.onclick = () => {
-      const d = dietDay(today);
-      const sel = d.slots[el.dataset.slotid];
-      if (!sel) return;
-      const i = sel.excl.indexOf(el.dataset.ing);
-      if (i >= 0) sel.excl.splice(i, 1); else sel.excl.push(el.dataset.ing);
-      saveData(); render();
+    v.querySelectorAll('[data-combo]').forEach(b => {
+      b.onclick = () => {
+        const c = data.combos.find(x => x.id === b.dataset.combo);
+        if (!c) return;
+        logItems(today, c.items, nextMeal().name);
+        c.count++; saveData(); render();
+      };
+      let timer = null;
+      b.addEventListener('pointerdown', () => { timer = setTimeout(() => { data.combos = data.combos.filter(x => x.id !== b.dataset.combo); saveData(); render(); }, 800); });
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearTimeout(timer)));
     });
     v.querySelectorAll('[data-extra]').forEach(el => el.onclick = () => {
       if (el.dataset.extra === 'creatine' && creatAuto) return;
@@ -926,24 +1003,29 @@
       d.extras[el.dataset.extra] = !d.extras[el.dataset.extra];
       saveData(); render();
     });
-    v.querySelectorAll('[data-rmadd]').forEach(el => el.onclick = () => { dietDay(today).adds.splice(Number(el.dataset.rmadd), 1); saveData(); render(); });
-    $('#btnAddFood').onclick = () => {
-      const qty = num($('#addQty').value);
-      if (qty <= 0) return;
-      dietDay(today).adds.push({ food: $('#addFood').value, qty });
-      saveData(); render();
-    };
-    v.querySelectorAll('[data-shop]').forEach(el => el.onclick = () => {
-      data.shopping[el.dataset.shop] = !data.shopping[el.dataset.shop];
+    v.querySelectorAll('[data-pantry]').forEach(b => b.onclick = () => {
+      const id = b.dataset.pantry;
+      const i = data.pantry.indexOf(id);
+      if (i >= 0) data.pantry.splice(i, 1); else data.pantry.push(id);
       saveData(); render();
     });
-    $('#btnResetShop').onclick = () => { data.shopping = {}; saveData(); render(); };
-
-    if (renderDieta.scrollTo) {
-      const target = $('#slot-' + renderDieta.scrollTo);
-      renderDieta.scrollTo = null;
-      if (target) setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-    }
+    $('#pfId').onchange = e => {
+      const f = foods[e.target.value];
+      $('#pfName').value = f ? f.name : '';
+      $('#pfPortion').value = f ? f.portion : '';
+      $('#pfKcal').value = f ? f.kcal : '';
+      $('#pfProt').value = f ? f.prot : '';
+    };
+    $('#btnSaveFood').onclick = () => {
+      const name = $('#pfName').value.trim();
+      const kcal = num($('#pfKcal').value), prot = num($('#pfProt').value);
+      if (!name || kcal <= 0) return;
+      let id = $('#pfId').value;
+      if (!id) id = 'c_' + uid();
+      data.customFoods[id] = Object.assign({}, data.customFoods[id] || {}, { name, portion: $('#pfPortion').value.trim() || '1 porció', kcal, prot });
+      if (!data.pantry.includes(id)) data.pantry.push(id);
+      saveData(); render();
+    };
   }
 
   /* ========== Vista: Progrés ========== */
