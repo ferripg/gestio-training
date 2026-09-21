@@ -454,7 +454,8 @@
     const mainLeft = Math.max(1, Math.min(5, 5 - nm.index));
     if (R <= 100) return { meal: nm, done: true, text: 'Objectiu d\'avui complert. Si tens gana: un got de llet o una fruita.' };
     const kcalT = Math.max(300, Math.min(900, Math.round(R / mainLeft / 10) * 10));
-    const protT = Math.max(15, Math.min(45, Math.round(Pr / mainLeft)));
+    // Si la proteïna ja està coberta, no en forcem més: només energia
+    const protT = Pr <= 0 ? 0 : Math.max(15, Math.min(45, Math.round(Pr / mainLeft)));
     const why = `Et falten ${R} kcal i ${Math.max(0, Math.round(Pr))} g de proteïna, en ${mainLeft} àpat${mainLeft > 1 ? 's' : ''}.`;
 
     // 1) Un àpat teu habitual que encaixi amb el que falta
