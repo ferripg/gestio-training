@@ -32,7 +32,7 @@
       profile: defaultProfile(),
       weights: [],    // { date, kg }
       diet: {},       // { 'YYYY-MM-DD': { slots: {slotId: optionId}, extras: {id: bool} } }
-      program: { nextWorkout: 'A', levels: {}, loads: {}, restDone: {}, lastSummary: null },
+      program: { nextWorkout: 'A', levels: {}, loads: {}, restDone: {}, lastSummary: null, pv: P.meta.version },
       shopping: {}    // { item: bool }
     };
   }
@@ -54,7 +54,14 @@
         d.profile.v3b = true;
       }
       d.diet = d.diet || {};
+      const storedPv = d.program ? d.program.pv : undefined;
       d.program = Object.assign(def.program, d.program || {});
+      // Programa nou (exercicis diferents) → pesos i nivells de zero; les sessions es conserven
+      if (storedPv !== P.meta.version) {
+        d.program.levels = {};
+        d.program.loads = {};
+        d.program.pv = P.meta.version;
+      }
       d.shopping = d.shopping || {};
       d.version = 3;
       return d;
@@ -507,8 +514,9 @@
             const sub = ex.kind === 'level' ? s.levelName : targetLabel(it);
             return `<div class="ex-line">• <b>${esc(ex.name)}</b> <span class="muted">${esc(ex.kind === 'level' ? targetLabel(it) + ' · ' + sub : sub)}</span></div>`;
           }).join('')}
-          <div class="stack" style="margin-bottom:0">
-            <button class="btn primary" id="btnStartProgram">▶️ Començar ${esc(wk.name)}</button>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" id="btnReview" style="flex:1">🎬 Repàs (3 min)</button>
+            <button class="btn primary" id="btnStartProgram" style="flex:2">▶️ Començar</button>
           </div>
         </div>`;
       }
@@ -618,6 +626,7 @@
 
     if ($('#btnResume')) $('#btnResume').onclick = openWorkout;
     if ($('#btnStartProgram')) $('#btnStartProgram').onclick = () => startProgramWorkout(info.key);
+    if ($('#btnReview')) $('#btnReview').onclick = () => showReview(info.key);
     if ($('#btnStartPlanned')) $('#btnStartPlanned').onclick = () => startWorkout(info.routine);
     if ($('#btnFreeWorkout')) $('#btnFreeWorkout').onclick = () => startWorkout(null);
     if ($('#btnRestDone')) $('#btnRestDone').onclick = () => {
@@ -753,7 +762,39 @@
       <h3 style="margin-bottom:4px">Tècnica</h3>
       ${ex.cues.map((c, i) => `<div class="ex-line">${i + 1}. ${esc(c)}</div>`).join('')}
       <p style="margin-top:10px"><b>Error habitual:</b> <span class="muted">${esc(ex.mistake)}</span></p>
+      ${ex.alt ? `<p style="margin-top:6px"><b>Si no pots:</b> <span class="muted">${esc(ex.alt)}</span></p>` : ''}
       ${ex.levels ? `<h3 style="margin:10px 0 4px">Nivells</h3>` + ex.levels.map((l, i) => `<div class="ex-line ${i === s.level ? '' : 'muted'}">${i === s.level ? '▶' : '○'} ${esc(l)}</div>`).join('') : ''}`);
+  }
+
+  // Repàs abans de començar: tots els clips de la sessió i 3 claus per exercici, en 3 minuts
+  function showReview(key) {
+    const wk = P.workouts[key];
+    const o = $('#overlay-review');
+    let html = `<div class="sheet">
+      <div class="spread"><h2 style="font-size:1.15rem">Repàs · ${esc(wk.name)}</h2><span class="muted">~3 min</span></div>
+      <p class="muted">Mira cada clip un cop. Durant la sessió només tindràs les 3 claus.</p>`;
+    wk.items.forEach((it, i) => {
+      const ex = P.exercises[it.ex];
+      const s = exState(it.ex);
+      const vids = videosFor(it.ex);
+      html += `<div class="card">
+        <div class="spread"><h3>${i + 1}. ${esc(ex.name)}</h3><span class="muted">${esc(targetLabel(it))}</span></div>
+        ${ex.kind === 'level' ? `<p class="muted" style="font-size:0.8rem">${esc(s.levelName)}</p>` : ''}
+        ${vids.slice(0, 1).map(videoEmbedHtml).join('')}
+        ${ex.cues.slice(0, 3).map(c => `<div class="ex-line">• ${esc(c)}</div>`).join('')}
+        ${ex.alt ? `<p class="muted" style="font-size:0.78rem;margin-top:4px">Si no pots: ${esc(ex.alt)}</p>` : ''}
+      </div>`;
+    });
+    html += `</div>
+      <div class="overlay-footer">
+        <button class="btn" id="btnReviewClose">Tancar</button>
+        <button class="btn primary" id="btnReviewStart">▶️ Començar ${esc(wk.name)}</button>
+      </div>`;
+    o.innerHTML = html;
+    o.classList.remove('hidden');
+    window.scrollTo(0, 0);
+    $('#btnReviewClose').onclick = () => { o.classList.add('hidden'); o.innerHTML = ''; };
+    $('#btnReviewStart').onclick = () => { o.classList.add('hidden'); o.innerHTML = ''; startProgramWorkout(key); };
   }
 
   // Fitxa d'un ítem d'escalfament / refredament / descans (nom, detall, vídeo)
