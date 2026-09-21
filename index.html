@@ -19,24 +19,24 @@
 
   <main id="main">
     <section id="view-avui" class="view"></section>
-    <section id="view-pla" class="view hidden"></section>
-    <section id="view-rutines" class="view hidden"></section>
-    <section id="view-historial" class="view hidden"></section>
+    <section id="view-programa" class="view hidden"></section>
+    <section id="view-dieta" class="view hidden"></section>
     <section id="view-progres" class="view hidden"></section>
+    <section id="view-mes" class="view hidden"></section>
   </main>
 
   <nav class="tabbar">
     <button class="tab active" data-view="avui"><span class="tab-ico">🏠</span>Avui</button>
-    <button class="tab" data-view="pla"><span class="tab-ico">📅</span>Pla</button>
-    <button class="tab" data-view="rutines"><span class="tab-ico">📋</span>Rutines</button>
-    <button class="tab" data-view="historial"><span class="tab-ico">🕘</span>Històric</button>
+    <button class="tab" data-view="programa"><span class="tab-ico">🏋️</span>Programa</button>
+    <button class="tab" data-view="dieta"><span class="tab-ico">🍽️</span>Dieta</button>
     <button class="tab" data-view="progres"><span class="tab-ico">📈</span>Progrés</button>
+    <button class="tab" data-view="mes"><span class="tab-ico">☰</span>Més</button>
   </nav>
 
   <!-- Pantalla d'entrenament actiu -->
   <div id="overlay-workout" class="overlay hidden"></div>
 
-  <!-- Editor de rutines -->
+  <!-- Editor de rutines pròpies -->
   <div id="overlay-routine" class="overlay hidden"></div>
 
   <!-- Temporitzador de descans (apareix en marcar una sèrie feta) -->
@@ -46,30 +46,36 @@
     <button id="restStop" class="btn small">✕</button>
   </div>
 
-  <!-- Ajustos -->
+  <!-- Fitxa d'exercici -->
+  <div id="modal-exercise" class="modal-backdrop hidden"><div class="modal"></div></div>
+
+  <!-- Ajustos i perfil -->
   <div id="modal-settings" class="modal-backdrop hidden">
     <div class="modal">
-      <h2>Ajustos</h2>
+      <h2>Perfil i ajustos</h2>
       <div class="stack">
+        <div class="row">
+          <label class="field grow"><span>Edat</span><input type="number" id="setAge" min="14" max="90" inputmode="numeric"></label>
+          <label class="field grow"><span>Alçada (cm)</span><input type="number" id="setHeight" min="120" max="230" inputmode="numeric"></label>
+        </div>
+        <div class="row">
+          <label class="field grow"><span>Pes inicial (kg)</span><input type="number" id="setStartWeight" step="0.1" inputmode="decimal"></label>
+          <label class="field grow"><span>Pes objectiu (kg)</span><input type="number" id="setTargetWeight" step="0.1" inputmode="decimal"></label>
+        </div>
+        <div class="row">
+          <label class="field grow"><span>Calories fixes (buit = automàtic)</span><input type="number" id="setKcalOverride" step="50" inputmode="numeric" placeholder="auto"></label>
+          <label class="field grow"><span>Proteïna fixa (g)</span><input type="number" id="setProtOverride" step="5" inputmode="numeric" placeholder="auto"></label>
+        </div>
         <label class="field"><span>🎯 Objectiu setmanal (dies d'entrenament)</span>
           <select id="setGoal">
-            <option value="1">1 dia</option>
-            <option value="2">2 dies</option>
-            <option value="3">3 dies</option>
-            <option value="4">4 dies</option>
-            <option value="5">5 dies</option>
-            <option value="6">6 dies</option>
-            <option value="7">7 dies</option>
+            <option value="1">1 dia</option><option value="2">2 dies</option><option value="3">3 dies</option>
+            <option value="4">4 dies</option><option value="5">5 dies</option><option value="6">6 dies</option><option value="7">7 dies</option>
           </select>
         </label>
         <label class="field"><span>⏲️ Descans entre sèries</span>
           <select id="setRest">
-            <option value="0">Desactivat</option>
-            <option value="60">1 min</option>
-            <option value="90">1 min 30 s</option>
-            <option value="120">2 min</option>
-            <option value="150">2 min 30 s</option>
-            <option value="180">3 min</option>
+            <option value="0">Desactivat</option><option value="60">1 min</option><option value="90">1 min 30 s</option>
+            <option value="120">2 min</option><option value="150">2 min 30 s</option><option value="180">3 min</option>
           </select>
         </label>
       </div>
@@ -78,12 +84,14 @@
         <button id="btnExport" class="btn">⬇️ Exportar dades (JSON)</button>
         <label class="btn" for="fileImport">⬆️ Importar còpia de seguretat</label>
         <input type="file" id="fileImport" accept="application/json" hidden>
+        <button id="btnResetProgram" class="btn">🔁 Reiniciar el programa (setmana 1)</button>
         <button id="btnWipe" class="btn danger">🗑️ Esborrar totes les dades</button>
       </div>
       <button id="btnCloseSettings" class="btn primary full">Tancar</button>
     </div>
   </div>
 
+  <script src="program.js"></script>
   <script src="charts.js"></script>
   <script src="app.js"></script>
 </body>

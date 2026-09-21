@@ -1,19 +1,16 @@
 # Gestió Training 💪
 
-App web (PWA) per planificar, registrar i seguir els teus entrenaments.
+App web (PWA) que fa d'entrenador personal: programa d'entrenament, dieta i seguiment del progrés, tot personalitzat.
 Feta amb HTML + CSS + JavaScript pur — sense frameworks, sense build, sense servidor.
 
-## Què fa
+## Què fa (v3)
 
-- **Avui** — et diu quina rutina toca segons el pla setmanal i et deixa començar l'entrenament (o un de lliure).
-- **Pla** — assigna una rutina a cada dia de la setmana.
-- **Rutines** — crea rutines reutilitzables amb exercicis de força (sèries × reps × pes) o cardio (distància + temps).
-- **Entrenament actiu** — pantalla per apuntar sèries mentre entrenes, amb cronòmetre; si tanques l'app, l'entrenament en curs es recupera.
-- **Històric** — totes les sessions fetes, amb detall i volum total.
-- **Progrés** — estadístiques (entrenaments del mes, ratxa de setmanes, volum), gràfica d'evolució per exercici, calendari de constància, entrenaments per setmana i rècords personals.
-- **Objectiu setmanal** — tries quants dies vols entrenar (⚙️ Ajustos) i veus l'anell de progrés a "Avui".
-- **Pes de l'última sessió** — en començar una rutina, es precarrega el que vas fer realment l'últim dia, amb la línia "Últim cop" com a referència a superar.
-- **Temporitzador de descans** — en marcar una sèrie com a feta, compte enrere configurable amb avís sonor i vibració.
+- **Avui** — et diu exactament què toca: la sessió del programa (amb objectius de pes/nivell calculats), o el dia de descans actiu. Entrada ràpida del pes del matí, tics de la dieta del dia i anell d'objectiu setmanal.
+- **Programa** — programa Hardgainer de 8 setmanes: full-body 3 dies, sessions A/B alternades, escalfament i refredament de postura, fitxes d'exercici amb tècnica i vídeos, regles de progressió automàtica (+5 kg a la Unica, següent nivell en calistènia, +5 s a la planxa) i tria dels dies d'entrenament.
+- **Entrenament guiat** — checklist d'escalfament, objectiu de cada exercici i què vas fer l'últim cop, temporitzador de descans amb so i vibració, checklist de refredament. En acabar, l'app aplica les progressions i et diu què puges la propera vegada.
+- **Dieta** — objectius de calories i proteïna calculats (Mifflin-St Jeor + activitat + superàvit, amb calibració per bàscula), 5 franges d'àpats amb opcions "muntar, no cuinar" i com es fan (batuts amb whey i creatina inclosos), tics diaris, adherència setmanal, llista de la compra i trucs.
+- **Progrés** — pes corporal (punts diaris + mitjana de 7 dies), tendència en kg/setmana i suggeriment automàtic d'ajust de calories, fites del programa, gràfiques per exercici, calendari de constància, sessions per setmana i rècords.
+- **Més** — històric de sessions, rutines pròpies per a dies extra, i perfil (metabolisme estimat, objectius, ajustos, còpies de seguretat).
 
 ## On es guarden les dades
 
@@ -24,13 +21,16 @@ Fes còpies de seguretat des de ⚙️ **Ajustos → Exportar dades (JSON)**; es
 
 | Fitxer | Què és |
 |---|---|
-| `index.html` | Estructura de la pàgina i pantalles |
+| `index.html` | Estructura de la pàgina, pestanyes i modals |
 | `style.css` | Estils (mode clar i fosc automàtics) |
-| `app.js` | Tota la lògica: vistes, dades, entrenament actiu |
-| `charts.js` | Gràfiques SVG (línia i barres) sense llibreries |
+| `program.js` | **Contingut** del programa: exercicis amb tècnica, sessions, escalfament, dieta, receptes, compra, fites |
+| `app.js` | Tota la lògica: vistes, dades, progressió, càlcul d'objectius, entrenament actiu |
+| `charts.js` | Gràfiques SVG (línia, barres, heatmap, pes) sense llibreries |
 | `manifest.webmanifest` | Fa que sigui instal·lable com a app (PWA) |
 | `sw.js` | Service worker: fa que funcioni offline |
 | `icons/` | Icones de l'app |
+
+Per canviar el programa o la dieta només cal editar `program.js`: és tot dades.
 
 ## Instal·lar-la al mòbil
 
@@ -41,7 +41,8 @@ Fes còpies de seguretat des de ⚙️ **Ajustos → Exportar dades (JSON)**; es
 ## Desenvolupament
 
 No cal instal·lar res. Edita els fitxers i obre `index.html` al navegador.
-(El service worker només s'activa amb HTTPS o localhost; en local tot funciona igualment.)
+Quan publiquis canvis, el mòbil els rebrà a la segona obertura de l'app.
 
-Quan publiquis canvis, el mòbil els rebrà a la segona obertura de l'app
-(el service worker serveix la versió en cache i es actualitza en segon pla).
+## Avís
+
+Recomanacions generals de fitness i nutrició, no consells mèdics. Si apareix dolor, consulta un professional.

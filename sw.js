@@ -2,13 +2,14 @@
    Estratègia "stale-while-revalidate": serveix del cache i actualitza en segon pla,
    així els canvis nous arriben a la segona obertura sense haver de tocar res. */
 
-const CACHE = 'gestio-training-v1';
+const CACHE = 'gestio-training-v3';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './charts.js',
+  './program.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png'

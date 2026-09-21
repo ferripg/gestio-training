@@ -227,6 +227,90 @@
     container.appendChild(svg);
   }
 
+  /* Pes corporal: punts diaris (pes real) + línia de mitjana mòbil de 7 dies.
+     pts = [{date, y}], avg = [{date, y}] (mateixes dates) */
+  function weightChart(container, pts, avg) {
+    container.innerHTML = '';
+    if (pts.length === 0) return;
+
+    const W = container.clientWidth || 320;
+    const H = 200;
+    const pad = { top: 24, right: 14, bottom: 24, left: 40 };
+    const iw = W - pad.left - pad.right;
+    const ih = H - pad.top - pad.bottom;
+
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+    const ys = pts.map(p => p.y);
+    const minY = Math.floor(Math.min(...ys) - 1);
+    const maxY = Math.ceil(Math.max(...ys) + 1);
+    const t0 = pts[0].date.getTime();
+    const t1 = pts[pts.length - 1].date.getTime();
+    const span = Math.max(t1 - t0, 864e5);
+    const px = d => pts.length === 1 ? pad.left + iw / 2 : pad.left + ((d.getTime() - t0) / span) * iw;
+    const py = v => pad.top + ih - ((v - minY) / (maxY - minY)) * ih;
+
+    // Gridlines: enters entre minY i maxY (màxim 5)
+    const stepY = Math.max(1, Math.ceil((maxY - minY) / 4));
+    for (let t = minY; t <= maxY; t += stepY) {
+      const y = py(t);
+      svg.appendChild(el('line', { x1: pad.left, x2: W - pad.right, y1: y, y2: y, class: 'c-grid' }));
+      const lbl = el('text', { x: pad.left - 6, y: y + 3, 'text-anchor': 'end', class: 'c-tick' });
+      lbl.textContent = t;
+      svg.appendChild(lbl);
+    }
+    const fmtD = d => d.toLocaleDateString('ca-ES', { day: 'numeric', month: 'short' });
+    const xl = el('text', { x: pad.left, y: H - 6, 'text-anchor': 'start', class: 'c-tick' });
+    xl.textContent = fmtD(pts[0].date);
+    svg.appendChild(xl);
+    if (pts.length > 1) {
+      const xr = el('text', { x: W - pad.right, y: H - 6, 'text-anchor': 'end', class: 'c-tick' });
+      xr.textContent = fmtD(pts[pts.length - 1].date);
+      svg.appendChild(xr);
+    }
+
+    // Punts diaris (pes real, atenuat)
+    for (const p of pts) svg.appendChild(el('circle', { cx: px(p.date), cy: py(p.y), r: 3, class: 'c-dot-soft' }));
+
+    // Línia de mitjana 7 dies
+    if (avg.length > 1) {
+      svg.appendChild(el('path', { d: `M ${avg.map(p => `${px(p.date)},${py(p.y)}`).join(' L ')}`, class: 'c-line' }));
+    }
+    const last = avg[avg.length - 1];
+    svg.appendChild(el('circle', { cx: px(last.date), cy: py(last.y), r: 4.5, class: 'c-dot' }));
+    const endLbl = el('text', { x: Math.min(px(last.date), W - pad.right - 4), y: py(last.y) - 10, 'text-anchor': 'end', class: 'c-endlabel' });
+    endLbl.textContent = `${fmtNum(last.y)} kg`;
+    svg.appendChild(endLbl);
+
+    // Tooltip: punt més proper
+    const cross = el('line', { y1: pad.top, y2: pad.top + ih, class: 'c-cross hidden' });
+    svg.appendChild(cross);
+    const tt = makeTooltip(container);
+    const hit = el('rect', { x: 0, y: 0, width: W, height: H, fill: 'transparent' });
+    svg.appendChild(hit);
+    const onMove = ev => {
+      const r = svg.getBoundingClientRect();
+      const mx = (ev.clientX - r.left) * (W / r.width);
+      let bi = 0, bd = Infinity;
+      pts.forEach((p, i) => { const d = Math.abs(px(p.date) - mx); if (d < bd) { bd = d; bi = i; } });
+      const p = pts[bi], a = avg[bi];
+      const bx = px(p.date);
+      cross.setAttribute('x1', bx); cross.setAttribute('x2', bx);
+      cross.classList.remove('hidden');
+      showTooltip(tt, container, bx * (r.width / W), py(p.y) * (r.height / H),
+        `${fmtNum(p.y)} kg — ${fmtD(p.date)}`, `Mitjana 7 dies: ${fmtNum(a.y)} kg`);
+    };
+    hit.addEventListener('pointermove', onMove);
+    hit.addEventListener('pointerdown', onMove);
+    hit.addEventListener('pointerleave', () => { cross.classList.add('hidden'); tt.classList.add('hidden'); });
+
+    // Llegenda mínima (dos significats del mateix color)
+    const lg = el('text', { x: W - pad.right, y: 12, 'text-anchor': 'end', class: 'c-tick' });
+    lg.textContent = 'punts = pes diari · línia = mitjana 7 dies';
+    svg.appendChild(lg);
+
+    container.appendChild(svg);
+  }
+
   /* Calendari de constància (estil GitHub): counts = { 'YYYY-MM-DD': nSessions } */
   function heatmap(container, counts) {
     container.innerHTML = '';
@@ -297,6 +381,7 @@
     .c-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
     .c-area { fill: var(--accent); fill-opacity: 0.1; }
     .c-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+    .c-dot-soft { fill: var(--accent); fill-opacity: 0.35; }
     .c-bar { fill: var(--accent); }
     .c-cross { stroke: var(--baseline); stroke-width: 1; }
     .c-hm0 { fill: var(--grid); }
@@ -306,5 +391,5 @@
   `;
   document.head.appendChild(style);
 
-  window.Charts = { lineChart, barChart, heatmap };
+  window.Charts = { lineChart, barChart, heatmap, weightChart };
 })();

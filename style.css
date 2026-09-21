@@ -218,6 +218,64 @@ label.field > span { display: block; margin-bottom: 4px; }
 .pr-line + .pr-line { border-top: 1px solid var(--grid); }
 .pr-line .pr-val { font-weight: 600; }
 
+/* ===== Programa / dieta (v3) ===== */
+.bar { height: 8px; border-radius: 999px; background: var(--grid); overflow: hidden; margin-top: 6px; }
+.bar-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.3s; }
+.bar-fill.good { background: var(--good); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-btn {
+  border: 1px solid var(--border); background: var(--page); color: var(--ink-2);
+  border-radius: 999px; padding: 6px 12px; font-size: 0.82rem; font-family: inherit; cursor: pointer;
+}
+.chip-btn.on { background: var(--good-bg); border-color: var(--good); color: var(--good); font-weight: 600; }
+
+.sched-day {
+  width: 30px; height: 30px; line-height: 28px; border-radius: 50%; margin: 3px auto 0;
+  font-size: 0.85rem; font-weight: 700; border: 1px solid var(--border); background: var(--page); color: var(--ink-2);
+}
+.sched-day.rest { border-style: dashed; color: var(--muted); }
+.sched-day.today { border-color: var(--accent); color: var(--accent); }
+.sched-day.done { background: var(--good-bg); border-color: var(--good); color: var(--good); }
+.sched-day.missed { color: var(--muted); }
+
+.ex-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; cursor: pointer; }
+.ex-row + .ex-row { border-top: 1px solid var(--grid); }
+.info-btn {
+  display: inline-block; width: 26px; height: 26px; line-height: 26px; text-align: center;
+  border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 0.9rem; font-weight: 600; cursor: pointer;
+}
+.target-line { font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
+
+.option { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-top: 8px; cursor: pointer; }
+.option.selected { border-color: var(--good); background: var(--good-bg); }
+.option details { margin-top: 6px; font-size: 0.82rem; }
+.option summary { cursor: pointer; }
+.opt-check {
+  width: 26px; height: 26px; line-height: 24px; text-align: center; flex-shrink: 0;
+  border-radius: 50%; border: 1px solid var(--border); background: var(--page); color: var(--good); font-weight: 700; font-size: 0.9rem;
+}
+.opt-check.on, .option.selected .opt-check { background: var(--good-bg); border-color: var(--good); }
+
+.check-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; cursor: pointer; }
+.check-row + .check-row { border-top: 1px solid var(--grid); }
+
+.adh-dot {
+  width: 28px; height: 28px; line-height: 26px; border-radius: 50%; margin: 3px auto 0;
+  font-size: 0.78rem; font-weight: 600; border: 1px solid var(--border); background: var(--page); color: var(--ink-2);
+}
+.adh-dot.good { background: var(--good-bg); border-color: var(--good); color: var(--good); }
+.adh-dot.half { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.adh-dot.low { color: var(--muted); }
+.adh-dot.today { box-shadow: 0 0 0 2px var(--accent-soft); }
+
+.subtabs { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; gap: 4px; }
+.subtab { flex: 1; border: none; background: none; padding: 8px; border-radius: 9px; font-family: inherit; font-size: 0.85rem; color: var(--ink-2); cursor: pointer; }
+.subtab.active { background: var(--accent); color: #fff; font-weight: 600; }
+
+.set-row.timed, .set-head.timed { grid-template-columns: 34px 1fr 44px; }
+.modal a.btn { text-decoration: none; }
+
 /* ===== Temporitzador de descans ===== */
 .rest-pill {
   position: fixed; z-index: 45;
