@@ -200,6 +200,14 @@ window.PROGRAM = {
     }
   },
 
+  /* Descans després de cada sèrie (segons), per exercici */
+  restSecs: {
+    latpull: 90, row: 90, chestpress: 90, goblet: 90, rdl: 90,
+    pushup: 75, split: 75,
+    bridge: 60, facepull: 60, ytw: 60,
+    deadbug: 45, plank: 45
+  },
+
   /* ---------- Sessions ---------- */
   workouts: {
     A: {
@@ -227,17 +235,17 @@ window.PROGRAM = {
   },
 
   warmup: [
-    { name: "Rem suau", detail: "3 min a ritme tranquil, 18-20 palades/min" },
+    { name: "Rem suau", detail: "3 min a ritme tranquil, 18-20 palades/min", secs: 180 },
     { name: "Gat-camell", detail: "×8, lent, mobilitzant tota l'esquena" },
     { name: "Rotacions toràciques", detail: "×8 per costat, a quatre grapes, mà darrere el cap" },
-    { name: "Estirament flexors de maluc", detail: "30 s per costat, genoll a terra, gluti apretat" },
+    { name: "Estirament flexors de maluc", detail: "30 s per costat, genoll a terra, gluti apretat (▶ un cop per costat)", secs: 30 },
     { name: "Cercles de braços", detail: "×10 endavant i ×10 enrere" }
   ],
 
   cooldown: [
     { name: "Cobra a terra", detail: "2×10: aixeca el pit amb l'esquena, mans fora del terra" },
-    { name: "Estirament pectoral al marc de la porta", detail: "2×30 s, colze a 90°" },
-    { name: "Estirament flexors de maluc", detail: "30 s per costat, lent i respirant" }
+    { name: "Estirament pectoral al marc de la porta", detail: "2×30 s, colze a 90° (▶ dos cops)", secs: 30 },
+    { name: "Estirament flexors de maluc", detail: "30 s per costat, lent i respirant (▶ un cop per costat)", secs: 30 }
   ],
 
   finisher: {
@@ -270,12 +278,13 @@ window.PROGRAM = {
   },
 
   milestones: [
-    { week: 2,  weight: 61.5, text: "Pes en marxa (+1-1,5 kg de glicogen i aigua). Dorms millor, menys mal d'esquena." },
-    { week: 4,  weight: 62,   text: "Força +20-40%: flexions ×2, +10 kg al jaló i al rem. Samarretes més justes a l'espatlla." },
-    { week: 8,  weight: 63.5, text: "Primer canvi visible al mirall: braços i pit més plens, postura més recta. Fes-te fotos!" },
-    { week: 13, weight: 65,   text: "La gent del teu voltant ho comenta. Passes a nivells superiors a l'esquat i al pont." },
-    { week: 26, weight: 67,   text: "Abdominals marcats si el greix es manté baix (en un hardgainer, sí)." },
-    { week: 40, weight: 69.5, text: "Objectiu: ~70 kg amb poc greix. Aquí revisem: mantenir o continuar." }
+    /* gain = kg per sobre del pes inicial del perfil */
+    { week: 2,  gain: 1.5, text: "Pes en marxa (+1-1,5 kg de glicogen i aigua). Dorms millor, menys mal d'esquena." },
+    { week: 4,  gain: 2,   text: "Força +20-40%: flexions ×2, +10 kg al jaló i al rem. Samarretes més justes a l'espatlla." },
+    { week: 8,  gain: 3.5, text: "Primer canvi visible al mirall: braços i pit més plens, postura més recta. Fes-te fotos!" },
+    { week: 13, gain: 5,   text: "La gent del teu voltant ho comenta. Passes a nivells superiors a l'esquat i al pont." },
+    { week: 26, gain: 7,   text: "Abdominals marcats si el greix es manté baix (en un hardgainer, sí)." },
+    { week: 40, gain: 9.5, text: "Objectiu: ~+10 kg amb poc greix. Aquí revisem: mantenir o continuar." }
   ],
 
   /* ---------- Dieta ---------- */

@@ -42,8 +42,9 @@
   <!-- Temporitzador de descans (apareix en marcar una sèrie feta) -->
   <div id="restPill" class="rest-pill hidden">
     <span id="restTime">Descans 1:30</span>
+    <button id="restPause" class="btn small" title="Pausa">⏸</button>
     <button id="restPlus" class="btn small">+30 s</button>
-    <button id="restStop" class="btn small">✕</button>
+    <button id="restStop" class="btn small" title="Aturar">✕</button>
   </div>
 
   <!-- Fitxa d'exercici -->
@@ -72,7 +73,7 @@
             <option value="4">4 dies</option><option value="5">5 dies</option><option value="6">6 dies</option><option value="7">7 dies</option>
           </select>
         </label>
-        <label class="field"><span>⏲️ Descans entre sèries</span>
+        <label class="field"><span>⏲️ Descans per defecte (rutines pròpies; el programa té el seu per exercici)</span>
           <select id="setRest">
             <option value="0">Desactivat</option><option value="60">1 min</option><option value="90">1 min 30 s</option>
             <option value="120">2 min</option><option value="150">2 min 30 s</option><option value="180">3 min</option>

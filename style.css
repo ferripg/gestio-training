@@ -273,7 +273,10 @@ label.field > span { display: block; margin-bottom: 4px; }
 .subtab { flex: 1; border: none; background: none; padding: 8px; border-radius: 9px; font-family: inherit; font-size: 0.85rem; color: var(--ink-2); cursor: pointer; }
 .subtab.active { background: var(--accent); color: #fff; font-weight: 600; }
 
-.set-row.timed, .set-head.timed { grid-template-columns: 34px 1fr 44px; }
+.set-row.timed, .set-head.timed { grid-template-columns: 34px 1fr 56px 44px; }
+.btn.tiny { padding: 5px 9px; font-size: 0.8rem; border-radius: 8px; white-space: nowrap; }
+.rest-pill.paused { border-color: var(--muted); }
+.rest-pill.paused span { color: var(--muted); }
 .modal a.btn { text-decoration: none; }
 
 /* ===== Temporitzador de descans ===== */
@@ -286,7 +289,9 @@ label.field > span { display: block; margin-bottom: 4px; }
   border-radius: 999px; padding: 8px 10px 8px 16px;
   box-shadow: var(--shadow); white-space: nowrap;
 }
-.rest-pill span { font-weight: 700; font-variant-numeric: tabular-nums; }
+.rest-pill span { font-weight: 700; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; }
+.rest-pill { max-width: calc(100vw - 24px); }
+.rest-pill .btn.small { padding: 6px 9px; flex-shrink: 0; }
 .rest-pill.finished { border-color: var(--good); }
 .rest-pill.finished span { color: var(--good); }
 

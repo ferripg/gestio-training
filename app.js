@@ -14,7 +14,7 @@
 
   function defaultProfile() {
     return {
-      age: 22, height: 179, sex: 'm', startWeight: 60, targetWeight: 70,
+      age: 22, height: 179, sex: 'm', startWeight: 58, targetWeight: 70,
       activity: 1.4, hardgainer: true,
       trainDays: ['1', '3', '5'],       // dilluns, dimecres, divendres
       programStart: todayISO(),
@@ -48,6 +48,11 @@
       d.settings = Object.assign(def.settings, d.settings || {});
       d.profile = Object.assign(defaultProfile(), d.profile || {});
       d.weights = Array.isArray(d.weights) ? d.weights : [];
+      // Migració puntual (21/09/2026): el punt de partida real és 58 kg, no 60
+      if (!d.profile.v3b) {
+        if (d.profile.startWeight === 60 && d.weights.length === 0) d.profile.startWeight = 58;
+        d.profile.v3b = true;
+      }
       d.diet = d.diet || {};
       d.program = Object.assign(def.program, d.program || {});
       d.shopping = d.shopping || {};
@@ -482,8 +487,8 @@
     const wToday = data.weights.find(w => w.date === today);
     const wYest = data.weights.find(w => w.date === shiftISO(today, -1));
     const avg7 = weightAvg(today, 7);
-    html += `<div class="card">
-      <h2>⚖️ Pes d'avui</h2>
+    html += `<div class="card" ${wToday ? '' : 'style="border-color: var(--accent)"'}>
+      <div class="spread"><h2>⚖️ Pes d'avui</h2>${wToday ? '' : '<span class="muted">Pesa\'t: és la teva brúixola</span>'}</div>
       <div class="row">
         <input type="number" step="0.1" min="30" max="200" inputmode="decimal" id="wInput" placeholder="kg" value="${wToday ? wToday.kg : ''}" style="max-width:120px">
         <button class="btn primary" id="btnSaveWeight">${wToday ? 'Actualitza' : 'Desa'}</button>
@@ -826,8 +831,9 @@
     // --- Fites ---
     html += `<div class="card"><h2>🏁 Fites del programa</h2>
       ${P.milestones.map(m => {
-        const reached = avg7 != null && avg7 >= m.weight;
-        return `<div class="ex-line ${reached ? '' : 'muted'}">${reached ? '✅' : '○'} <b>Setmana ${m.week} · ${fmt(m.weight)} kg</b> — ${esc(m.text)}</div>`;
+        const target = data.profile.startWeight + m.gain;
+        const reached = avg7 != null && avg7 >= target;
+        return `<div class="ex-line ${reached ? '' : 'muted'}">${reached ? '✅' : '○'} <b>Setmana ${m.week} · ${fmt(target)} kg</b> — ${esc(m.text)}</div>`;
       }).join('')}
     </div>`;
 
@@ -1005,7 +1011,7 @@
       const bits = [nExercicis(s.entries.length)];
       if (vol) bits.push(`${fmt(vol)} kg`);
       if (km) bits.push(`${fmt(km)} km`);
-      const dur = s.end && s.start ? Math.round((s.end - s.start) / 60000) : null;
+      const dur = s.end && s.start ? Math.round((s.end - s.start - (s.pausedMs || 0)) / 60000) : null;
       if (dur) bits.push(`${dur} min`);
       html += `<div class="card" data-sess="${s.id}" style="cursor:pointer">
         <div class="spread">
@@ -1209,6 +1215,7 @@
     const entry = {
       id: uid(), exKey: item.ex, name: ex.name, mode: 'forca', timed: ex.kind === 'time',
       target: targetLabel(item), repsMin: item.reps[0], repsMax: item.reps[1],
+      rest: (P.restSecs && P.restSecs[item.ex]) || 0,
       variant: ex.kind === 'level' ? st.levelName : null, sets: []
     };
     for (let i = 0; i < sets; i++) {
@@ -1250,47 +1257,100 @@
     stopRest();
   }
 
-  /* ---- Temporitzador de descans ---- */
+  /* ---- Compte enrere únic: descans entre sèries, planxa, escalfament ----
+     Un sol temporitzador actiu al pastilló #restPill, amb pausa, +30 s i aturar. */
 
-  let restEndsAt = null, restTicker = null, restHideTimeout = null;
+  let cd = null;   // { kind: 'rest'|'hold'|'warm', label, endsAt, remainingMs, paused, onDone, lastTick }
+  let cdTicker = null, cdHideTimeout = null;
 
-  function startRest() {
-    const secs = data.settings.restSecs || 0;
-    if (secs <= 0) return;
-    clearTimeout(restHideTimeout);
-    restEndsAt = Date.now() + secs * 1000;
-    $('#restPill').classList.remove('hidden', 'finished');
-    if (!restTicker) restTicker = setInterval(tickRest, 250);
-    tickRest();
+  function fmtSecs(total) {
+    const m = Math.floor(total / 60), s = total % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
   }
 
-  function tickRest() {
-    if (!restEndsAt) return;
-    const left = Math.ceil((restEndsAt - Date.now()) / 1000);
+  function startCountdown(opts) {
+    if (!opts.secs || opts.secs <= 0) return;
+    clearTimeout(cdHideTimeout);
+    cd = { kind: opts.kind, label: opts.label, endsAt: Date.now() + opts.secs * 1000, remainingMs: 0, paused: false, onDone: opts.onDone || null, lastTick: null };
+    $('#restPill').classList.remove('hidden', 'finished', 'paused');
+    $('#restPause').textContent = '⏸';
+    if (!cdTicker) cdTicker = setInterval(tickCountdown, 250);
+    tickCountdown();
+  }
+
+  function cdText(left) {
+    // Etiqueta curta perquè càpiga al mòbil: sense parèntesis i màxim 16 caràcters
+    let label = String(cd.label || '').replace(/\s*\(.*?\)/g, '').trim();
+    if (label.length > 16) label = label.slice(0, 15) + '…';
+    return `${cd.kind === 'rest' ? 'Descans · ' : ''}${label} ${fmtSecs(left)}`;
+  }
+
+  function tickCountdown() {
+    if (!cd || cd.paused) return;
+    const left = Math.ceil((cd.endsAt - Date.now()) / 1000);
     if (left <= 0) {
-      clearInterval(restTicker); restTicker = null; restEndsAt = null;
-      $('#restTime').textContent = 'Descans acabat! 💥';
+      const done = cd;
+      clearInterval(cdTicker); cdTicker = null; cd = null;
+      $('#restTime').textContent = done.kind === 'rest' ? 'Descans acabat! 💥' : 'Temps! 💥';
       $('#restPill').classList.add('finished');
       beep();
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-      restHideTimeout = setTimeout(() => $('#restPill').classList.add('hidden'), 4000);
+      cdHideTimeout = setTimeout(() => $('#restPill').classList.add('hidden'), 4000);
+      if (done.onDone) done.onDone();
       return;
     }
-    const m = Math.floor(left / 60), s = left % 60;
-    $('#restTime').textContent = `Descans ${m}:${String(s).padStart(2, '0')}`;
+    // Als exercicis de temps, bip curt als últims 3 segons
+    if (cd.kind !== 'rest' && left <= 3 && cd.lastTick !== left) { cd.lastTick = left; beep(true); }
+    $('#restTime').textContent = cdText(left);
   }
 
-  function stopRest() {
-    clearInterval(restTicker); restTicker = null; restEndsAt = null;
-    clearTimeout(restHideTimeout);
+  function pauseCountdown() {
+    if (!cd || cd.paused) return;
+    cd.paused = true;
+    cd.remainingMs = Math.max(0, cd.endsAt - Date.now());
+    $('#restPill').classList.add('paused');
+    $('#restPause').textContent = '▶';
+  }
+
+  function resumeCountdown() {
+    if (!cd || !cd.paused) return;
+    cd.paused = false;
+    cd.endsAt = Date.now() + cd.remainingMs;
+    $('#restPill').classList.remove('paused');
+    $('#restPause').textContent = '⏸';
+    tickCountdown();
+  }
+
+  function addCountdown(secs) {
+    if (!cd) return;
+    if (cd.paused) {
+      cd.remainingMs += secs * 1000;
+      $('#restTime').textContent = cdText(Math.ceil(cd.remainingMs / 1000));
+    } else {
+      cd.endsAt += secs * 1000;
+      tickCountdown();
+    }
+  }
+
+  function stopCountdown() {
+    clearInterval(cdTicker); cdTicker = null; cd = null;
+    clearTimeout(cdHideTimeout);
     const pill = $('#restPill');
     if (pill) pill.classList.add('hidden');
   }
 
-  function beep() {
+  // Descans després d'una sèrie: el propi de l'exercici, o el global per a rutines pròpies
+  function startRest(entry) {
+    const secs = (entry && entry.rest) || data.settings.restSecs || 0;
+    startCountdown({ kind: 'rest', label: entry ? entry.name : 'Descans', secs });
+  }
+
+  function stopRest() { stopCountdown(); }
+
+  function beep(short) {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      [0, 0.25].forEach(delay => {
+      (short ? [0] : [0, 0.25]).forEach(delay => {
         const osc = ctx.createOscillator(), gain = ctx.createGain();
         osc.connect(gain); gain.connect(ctx.destination);
         osc.frequency.value = 880;
@@ -1303,18 +1363,42 @@
     } catch (e) { /* sense àudio no passa res */ }
   }
 
+  // Temps real de sessió: descomptant les pauses
+  function elapsedMs() {
+    if (!draft) return 0;
+    const now = Date.now();
+    return now - draft.start - (draft.pausedMs || 0) - (draft.pausedAt ? now - draft.pausedAt : 0);
+  }
+
+  function toggleSessionPause() {
+    if (!draft) return;
+    if (draft.pausedAt) {
+      draft.pausedMs = (draft.pausedMs || 0) + (Date.now() - draft.pausedAt);
+      draft.pausedAt = null;
+      resumeCountdown();
+    } else {
+      draft.pausedAt = Date.now();
+      pauseCountdown();
+    }
+    saveDraft();
+    const b = $('#btnPauseSession');
+    if (b) b.textContent = draft.pausedAt ? '▶' : '⏸';
+    updateTimer();
+  }
+
   function updateTimer() {
     const t = $('#wTimer');
     if (!t || !draft) return;
-    const s = Math.floor((Date.now() - draft.start) / 1000);
+    const s = Math.floor(elapsedMs() / 1000);
     const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
-    t.textContent = h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : `${m}:${String(ss).padStart(2, '0')}`;
+    t.textContent = (h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : `${m}:${String(ss).padStart(2, '0')}`) + (draft.pausedAt ? ' ⏸' : '');
   }
 
   function checklistHtml(items, states, attr) {
     return items.map((it, i) => `<div class="check-row" data-${attr}="${i}">
       <span class="opt-check ${states[i] ? 'on' : ''}">${states[i] ? '✓' : ''}</span>
       <div class="grow"><div class="${states[i] ? 'muted' : ''}">${esc(it.name)}</div><div class="muted" style="font-size:0.78rem">${esc(it.detail)}</div></div>
+      ${it.secs ? `<button class="btn tiny" data-${attr}play="${i}">▶ ${fmtSecs(it.secs)}</button>` : ''}
     </div>`).join('');
   }
 
@@ -1323,7 +1407,8 @@
     if (!draft) return;
 
     let html = `<div class="sheet">
-      <div class="spread"><h2 style="font-size:1.15rem">${esc(draft.routineName || 'Entrenament lliure')}</h2><span class="timer" id="wTimer">0:00</span></div>
+      <div class="spread"><h2 style="font-size:1.15rem">${esc(draft.routineName || 'Entrenament lliure')}</h2>
+        <span class="row" style="gap:6px"><span class="timer" id="wTimer">0:00</span><button class="btn tiny" id="btnPauseSession" title="Pausar el cronòmetre">${draft.pausedAt ? '▶' : '⏸'}</button></span></div>
       <p class="muted">${fmtDate(draft.date)}${draft.program && isDeload() ? ' · setmana de descàrrega' : ''}</p>`;
 
     if (draft.warmup) {
@@ -1342,7 +1427,7 @@
           </div>
         </div>
         ${e.variant ? `<p class="muted" style="font-size:0.8rem">${esc(e.variant)}</p>` : ''}
-        ${e.target ? `<p class="target-line">🎯 ${esc(e.target)}${prevTxt ? ` <span class="muted">· últim cop: ${esc(prevTxt)}</span>` : ''}</p>`
+        ${e.target ? `<p class="target-line">🎯 ${esc(e.target)}${e.rest ? ` · descans ${e.rest} s` : ''}${prevTxt ? ` <span class="muted">· últim cop: ${esc(prevTxt)}</span>` : ''}</p>`
           : (prevTxt ? `<p class="muted" style="font-size:0.78rem;margin-bottom:6px">Últim cop: ${esc(prevTxt)}</p>` : '')}`;
 
       if (e.mode === 'cardio') {
@@ -1352,12 +1437,12 @@
           <button class="check ${e.done ? 'on' : ''}" data-cdone="${i}" style="margin-top:18px">✓</button>
         </div>`;
       } else {
-        html += `<div class="set-head ${e.timed ? 'timed' : ''}"><span></span><span>${e.timed ? 'Segons' : 'Reps'}</span>${e.timed ? '' : '<span>Pes (kg)</span>'}<span></span></div>`;
+        html += `<div class="set-head ${e.timed ? 'timed' : ''}"><span></span><span>${e.timed ? 'Segons' : 'Reps'}</span><span>${e.timed ? '' : 'Pes (kg)'}</span><span></span></div>`;
         e.sets.forEach((st, j) => {
           html += `<div class="set-row ${st.done ? 'done' : ''} ${e.timed ? 'timed' : ''}">
             <span class="set-num">${j + 1}</span>
             <input type="number" step="1" min="0" inputmode="numeric" data-s="reps" data-i="${i}" data-j="${j}" value="${st.reps || ''}">
-            ${e.timed ? '' : `<input type="number" step="0.5" min="0" inputmode="decimal" data-s="weight" data-i="${i}" data-j="${j}" value="${st.weight || ''}">`}
+            ${e.timed ? `<button class="btn tiny" data-hold="${i}-${j}" title="Compte enrere">▶</button>` : `<input type="number" step="0.5" min="0" inputmode="decimal" data-s="weight" data-i="${i}" data-j="${j}" value="${st.weight || ''}">`}
             <button class="check ${st.done ? 'on' : ''}" data-sdone="${i}-${j}">✓</button>
           </div>`;
         });
@@ -1389,8 +1474,29 @@
     o.innerHTML = html;
     updateTimer();
 
-    o.querySelectorAll('[data-wu]').forEach(el => el.onclick = () => { draft.warmup[Number(el.dataset.wu)] = !draft.warmup[Number(el.dataset.wu)]; saveDraft(); renderWorkout(); });
-    o.querySelectorAll('[data-cd]').forEach(el => el.onclick = () => { draft.cooldown[Number(el.dataset.cd)] = !draft.cooldown[Number(el.dataset.cd)]; saveDraft(); renderWorkout(); });
+    o.querySelectorAll('[data-wu]').forEach(el => el.onclick = ev => { if (ev.target.closest('[data-wuplay]')) return; draft.warmup[Number(el.dataset.wu)] = !draft.warmup[Number(el.dataset.wu)]; saveDraft(); renderWorkout(); });
+    o.querySelectorAll('[data-cd]').forEach(el => el.onclick = ev => { if (ev.target.closest('[data-cdplay]')) return; draft.cooldown[Number(el.dataset.cd)] = !draft.cooldown[Number(el.dataset.cd)]; saveDraft(); renderWorkout(); });
+    // ▶ als ítems d'escalfament/refredament amb durada: en acabar es marquen sols
+    o.querySelectorAll('[data-wuplay]').forEach(b => b.onclick = () => {
+      const i = Number(b.dataset.wuplay), it = P.warmup[i];
+      startCountdown({ kind: 'warm', label: it.name, secs: it.secs, onDone: () => { if (draft && draft.warmup) { draft.warmup[i] = true; saveDraft(); renderWorkout(); } } });
+    });
+    o.querySelectorAll('[data-cdplay]').forEach(b => b.onclick = () => {
+      const i = Number(b.dataset.cdplay), it = P.cooldown[i];
+      startCountdown({ kind: 'warm', label: it.name, secs: it.secs, onDone: () => { if (draft && draft.cooldown) { draft.cooldown[i] = true; saveDraft(); renderWorkout(); } } });
+    });
+    // ▶ a les sèries de temps (planxa): en acabar, sèrie feta + descans
+    o.querySelectorAll('[data-hold]').forEach(b => b.onclick = () => {
+      const [i, j] = b.dataset.hold.split('-').map(Number);
+      const e = draft.entries[i];
+      startCountdown({ kind: 'hold', label: e.name, secs: e.sets[j].reps || 0, onDone: () => {
+        if (!draft || !draft.entries[i]) return;
+        draft.entries[i].sets[j].done = true;
+        saveDraft(); renderWorkout();
+        startRest(draft.entries[i]);
+      } });
+    });
+    if ($('#btnPauseSession')) $('#btnPauseSession').onclick = toggleSessionPause;
     o.querySelectorAll('[data-info]').forEach(el => el.onclick = () => showExerciseInfo(el.dataset.info));
     o.querySelectorAll('[data-s]').forEach(inp => {
       inp.oninput = () => {
@@ -1410,7 +1516,7 @@
         b.classList.toggle('on', st.done);
         b.closest('.set-row').classList.toggle('done', st.done);
         saveDraft();
-        if (st.done) startRest(); else stopRest();
+        if (st.done) startRest(draft.entries[i]); else stopRest();
       };
     });
     o.querySelectorAll('[data-cdone]').forEach(b => {
@@ -1485,7 +1591,8 @@
       draft = null; saveDraft(); closeWorkout(); render();
       return;
     }
-    const session = { id: draft.id, date: draft.date, start: draft.start, end: Date.now(), routineName: draft.routineName, entries };
+    if (draft.pausedAt) { draft.pausedMs = (draft.pausedMs || 0) + (Date.now() - draft.pausedAt); draft.pausedAt = null; }
+    const session = { id: draft.id, date: draft.date, start: draft.start, end: Date.now(), pausedMs: draft.pausedMs || 0, routineName: draft.routineName, entries };
     if (draft.program) {
       session.program = draft.program;
       applyProgression(entries, draft.program);
@@ -1585,8 +1692,9 @@
     resizeTimer = setTimeout(() => { if (currentView === 'progres') renderProgres(); }, 200);
   });
 
-  $('#restPlus').onclick = () => { if (restEndsAt) { restEndsAt += 30000; tickRest(); } };
-  $('#restStop').onclick = stopRest;
+  $('#restPlus').onclick = () => addCountdown(30);
+  $('#restStop').onclick = stopCountdown;
+  $('#restPause').onclick = () => { if (!cd) return; if (cd.paused) resumeCountdown(); else pauseCountdown(); };
 
   setupSettings();
   showView('avui');
