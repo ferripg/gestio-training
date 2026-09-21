@@ -200,6 +200,30 @@ window.PROGRAM = {
     }
   },
 
+  /* Vídeos incrustats a la fitxa (YouTube, verificats 21/09/2026).
+     Clau = clau d'exercici, o nom exacte de l'ítem d'escalfament/refredament. */
+  videos: {
+    pushup:     [{ id: "hbGR_wq7wzo", title: "Flexions per a principiants: tècnica i progressió (Endurance Fitness)" }],
+    latpull:    [{ id: "1JiNvChA0_Q", title: "Jaló al pit, com fer-lo correctament (Paloma Sala)" }],
+    goblet:     [{ id: "4RN0YJF4YtE", title: "Esquat goblet amb kettlebell en 30 segons (Jeronimo Milo)" }],
+    rdl:        [{ id: "O-MLxyVYRBY", title: "Pes mort romanès: tutorial (Prowellness)" }],
+    facepull:   [{ id: "X-xCQ1gh-kA", title: "Face pull correctament, evita lesions (Powerexplosive · HSN)" }],
+    deadbug:    [{ id: "HN3wyEcYC2g", title: "Com fer el dead bug (Estudio Training)" }],
+    row:        [{ id: "JtTusrYzAos", title: "Rem assegut en politja: com fer-lo bé (EresFitness)" }],
+    chestpress: [{ id: "lw4uUkBl_HE", title: "Press de pit en màquina: tècnica i ajust del seient (Ramona Gorraiz)" }],
+    split:      [{ id: "IdilLr9nyuQ", title: "Esquat búlgar pas a pas (Your House Fitness)" }],
+    bridge:     [{ id: "GpJYbtAgtAk", title: "Hip thrust i pont de glutis a casa (Fitter Health)" }],
+    ytw:        [{ id: "QdGTI4Lshg4", title: "Y-T-W estirat a terra (The Active Life)" }],
+    plank:      [{ id: "nmX0DysvqcQ", title: "Planxa abdominal correctament (Calistenia con Isaac)" },
+                 { id: "kyOeSuh7LLo", title: "Planxa lateral: tècnica correcta (Vitar Club)" }],
+    "Rem suau": [{ id: "vj8MVU2UiEk", title: "Tècnica de rem indoor: com remar (Fran, entrenador de remers)" }],
+    "Gat-camell": [{ id: "gWbfVPK4RAU", title: "Gat-camell (Consorci Sanitari Integral, en català)" }],
+    "Rotacions toràciques": [{ id: "IMirvX4trqE", title: "Rotació toràcica a quatre grapes (Elevate)" }],
+    "Estirament flexors de maluc": [{ id: "HmfHMdmmVhc", title: "Estirament de maluc i flexors (Estudio Training)" }],
+    "Cobra a terra": [{ id: "yhkOiReYqy4", title: "Postura de la cobra pas a pas (Pau's Secrets)" }],
+    "Estirament pectoral al marc de la porta": [{ id: "D1W8Zkk68WE", title: "Estirament de pit a la porta (Gimnasio Grandmontagne)" }]
+  },
+
   /* Descans després de cada sèrie (segons), per exercici */
   restSecs: {
     latpull: 90, row: 90, chestpress: 90, goblet: 90, rdl: 90,

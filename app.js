@@ -622,11 +622,12 @@
       </div>`;
     }
 
+    const itemLine = (w, list, i) => `<div class="ex-line" ${videosFor(w.name).length ? `data-iteminfo="${list}-${i}" style="cursor:pointer"` : ''}>• <b>${esc(w.name)}</b> <span class="muted">${esc(w.detail)}</span>${videosFor(w.name).length ? ' <span class="info-btn">ⓘ</span>' : ''}</div>`;
     html += `<div class="card">
       <h2>🔥 Escalfament (5 min)</h2>
-      ${P.warmup.map(w => `<div class="ex-line">• <b>${esc(w.name)}</b> <span class="muted">${esc(w.detail)}</span></div>`).join('')}
+      ${P.warmup.map((w, i) => itemLine(w, 'warmup', i)).join('')}
       <h2 style="margin-top:12px">🧘 Refredament i postura (4 min)</h2>
-      ${P.cooldown.map(w => `<div class="ex-line">• <b>${esc(w.name)}</b> <span class="muted">${esc(w.detail)}</span></div>`).join('')}
+      ${P.cooldown.map((w, i) => itemLine(w, 'cooldown', i)).join('')}
       <p class="muted" style="margin-top:10px"><b>${esc(P.finisher.name)}</b>: ${esc(P.finisher.detail)}</p>
     </div>`;
 
@@ -653,6 +654,10 @@
     v.innerHTML = html;
 
     v.querySelectorAll('[data-exinfo]').forEach(el => el.onclick = () => showExerciseInfo(el.dataset.exinfo));
+    v.querySelectorAll('[data-iteminfo]').forEach(el => el.onclick = () => {
+      const [list, i] = el.dataset.iteminfo.split('-');
+      showItemInfo(P[list][Number(i)]);
+    });
     v.querySelectorAll('[data-day]').forEach(b => b.onclick = () => {
       const d = b.dataset.day;
       const td = data.profile.trainDays;
@@ -662,29 +667,53 @@
     });
   }
 
+  // Vídeos incrustats (definits a program.js → videos[clau d'exercici o nom d'ítem])
+  function videosFor(key) {
+    return (P.videos && P.videos[key]) || [];
+  }
+
+  function videoEmbedHtml(v) {
+    return `<div class="video-title muted">${esc(v.title)}</div>
+      <div class="video"><iframe src="https://www.youtube-nocookie.com/embed/${esc(v.id)}?rel=0&modestbranding=1&playsinline=1" loading="lazy"
+        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="${esc(v.title)}"></iframe></div>`;
+  }
+
+  // Modal genèric de fitxa (exercici o ítem d'escalfament)
+  function showInfoModal(html) {
+    const m = $('#modal-exercise');
+    m.querySelector('.modal').innerHTML = html + `<div class="stack" style="margin-bottom:0"><button class="btn primary" id="btnCloseExercise">Tancar</button></div>`;
+    m.classList.remove('hidden');
+    $('#btnCloseExercise').onclick = () => { m.classList.add('hidden'); m.querySelector('.modal').innerHTML = ''; };
+    m.onclick = e => { if (e.target === m) { m.classList.add('hidden'); m.querySelector('.modal').innerHTML = ''; } };
+  }
+
   function showExerciseInfo(key) {
     const ex = P.exercises[key];
     const s = exState(key);
-    const m = $('#modal-exercise');
     let state = '';
     if (ex.kind === 'load') state = `Pes actual: <b>${s.load} kg</b> (+${ex.step} kg quan totes les sèries arribin al màxim)`;
     else if (ex.kind === 'time') state = `Objectiu actual: <b>${s.secs} s</b> per sèrie`;
     else state = `Nivell actual <b>${s.level + 1} de ${ex.levels.length}</b>: ${esc(s.levelName)}`;
-    m.querySelector('.modal').innerHTML = `
+    const vids = videosFor(key);
+    showInfoModal(`
       <h2>${esc(ex.name)}</h2>
       <p class="muted">${esc(ex.muscle)} · ${esc(ex.equip)}</p>
+      ${vids.map(videoEmbedHtml).join('')}
+      ${vids.length ? '' : `<a class="btn" href="${esc(ex.video)}" target="_blank" rel="noopener" style="margin:8px 0">▶️ Veure vídeos de la tècnica</a>`}
       <p style="margin:10px 0">${state}</p>
       <h3 style="margin-bottom:4px">Tècnica</h3>
       ${ex.cues.map((c, i) => `<div class="ex-line">${i + 1}. ${esc(c)}</div>`).join('')}
       <p style="margin-top:10px"><b>Error habitual:</b> <span class="muted">${esc(ex.mistake)}</span></p>
-      ${ex.levels ? `<h3 style="margin:10px 0 4px">Nivells</h3>` + ex.levels.map((l, i) => `<div class="ex-line ${i === s.level ? '' : 'muted'}">${i === s.level ? '▶' : '○'} ${esc(l)}</div>`).join('') : ''}
-      <div class="stack">
-        <a class="btn" href="${esc(ex.video)}" target="_blank" rel="noopener">▶️ Veure vídeos de la tècnica</a>
-        <button class="btn primary" id="btnCloseExercise">Tancar</button>
-      </div>`;
-    m.classList.remove('hidden');
-    $('#btnCloseExercise').onclick = () => m.classList.add('hidden');
-    m.onclick = e => { if (e.target === m) m.classList.add('hidden'); };
+      ${ex.levels ? `<h3 style="margin:10px 0 4px">Nivells</h3>` + ex.levels.map((l, i) => `<div class="ex-line ${i === s.level ? '' : 'muted'}">${i === s.level ? '▶' : '○'} ${esc(l)}</div>`).join('') : ''}`);
+  }
+
+  // Fitxa d'un ítem d'escalfament / refredament / descans (nom, detall, vídeo)
+  function showItemInfo(it) {
+    const vids = videosFor(it.name);
+    showInfoModal(`
+      <h2>${esc(it.name)}</h2>
+      <p class="muted">${esc(it.detail)}</p>
+      ${vids.map(videoEmbedHtml).join('')}`);
   }
 
   /* ========== Vista: Dieta ========== */
@@ -1398,7 +1427,7 @@
   function checklistHtml(items, states, attr) {
     return items.map((it, i) => `<div class="check-row" data-${attr}="${i}">
       <span class="opt-check ${states[i] ? 'on' : ''}">${states[i] ? '✓' : ''}</span>
-      <div class="grow"><div class="${states[i] ? 'muted' : ''}">${esc(it.name)}</div><div class="muted" style="font-size:0.78rem">${esc(it.detail)}</div></div>
+      <div class="grow"><div class="${states[i] ? 'muted' : ''}">${esc(it.name)}${videosFor(it.name).length ? ` <span class="info-btn" data-${attr}info="${i}">ⓘ</span>` : ''}</div><div class="muted" style="font-size:0.78rem">${esc(it.detail)}</div></div>
       ${it.secs ? `<button class="btn tiny" data-${attr}play="${i}">▶ ${fmtSecs(it.secs)}</button>` : ''}
     </div>`).join('');
   }
@@ -1475,8 +1504,10 @@
     o.innerHTML = html;
     updateTimer();
 
-    o.querySelectorAll('[data-wu]').forEach(el => el.onclick = ev => { if (ev.target.closest('[data-wuplay]')) return; draft.warmup[Number(el.dataset.wu)] = !draft.warmup[Number(el.dataset.wu)]; saveDraft(); renderWorkout(); });
-    o.querySelectorAll('[data-cd]').forEach(el => el.onclick = ev => { if (ev.target.closest('[data-cdplay]')) return; draft.cooldown[Number(el.dataset.cd)] = !draft.cooldown[Number(el.dataset.cd)]; saveDraft(); renderWorkout(); });
+    o.querySelectorAll('[data-wu]').forEach(el => el.onclick = ev => { if (ev.target.closest('[data-wuplay],[data-wuinfo]')) return; draft.warmup[Number(el.dataset.wu)] = !draft.warmup[Number(el.dataset.wu)]; saveDraft(); renderWorkout(); });
+    o.querySelectorAll('[data-cd]').forEach(el => el.onclick = ev => { if (ev.target.closest('[data-cdplay],[data-cdinfo]')) return; draft.cooldown[Number(el.dataset.cd)] = !draft.cooldown[Number(el.dataset.cd)]; saveDraft(); renderWorkout(); });
+    o.querySelectorAll('[data-wuinfo]').forEach(b => b.onclick = () => showItemInfo(P.warmup[Number(b.dataset.wuinfo)]));
+    o.querySelectorAll('[data-cdinfo]').forEach(b => b.onclick = () => showItemInfo(P.cooldown[Number(b.dataset.cdinfo)]));
     // ▶ als ítems d'escalfament/refredament amb durada: en acabar es marquen sols
     o.querySelectorAll('[data-wuplay]').forEach(b => b.onclick = () => {
       const i = Number(b.dataset.wuplay), it = P.warmup[i];
