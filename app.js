@@ -1282,7 +1282,8 @@
     // Etiqueta curta perquè càpiga al mòbil: sense parèntesis i màxim 16 caràcters
     let label = String(cd.label || '').replace(/\s*\(.*?\)/g, '').trim();
     if (label.length > 16) label = label.slice(0, 15) + '…';
-    return `${cd.kind === 'rest' ? 'Descans · ' : ''}${label} ${fmtSecs(left)}`;
+    // El temps sempre primer: si cal retallar, es retalla el nom
+    return cd.kind === 'rest' ? `Descans ${fmtSecs(left)} · ${label}` : `${fmtSecs(left)} · ${label}`;
   }
 
   function tickCountdown() {
