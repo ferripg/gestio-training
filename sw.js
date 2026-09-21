@@ -1,8 +1,8 @@
 /* Service worker: cache dels fitxers de l'app perquè funcioni offline.
-   Estratègia "stale-while-revalidate": serveix del cache i actualitza en segon pla,
-   així els canvis nous arriben a la segona obertura sense haver de tocar res. */
+   Estratègia "network-first": amb connexió, sempre la versió nova (i s'actualitza el cache);
+   sense connexió, la versió guardada. Així els canvis arriben a la PRIMERA obertura. */
 
-const CACHE = 'gestio-training-v3';
+const CACHE = 'gestio-training-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -34,12 +34,14 @@ self.addEventListener('fetch', event => {
 
   event.respondWith(
     caches.open(CACHE).then(async cache => {
-      const cached = await cache.match(req);
-      const network = fetch(req).then(res => {
+      try {
+        const res = await fetch(req, { cache: 'no-cache' });
         if (res.ok) cache.put(req, res.clone());
         return res;
-      }).catch(() => cached);
-      return cached || network;
+      } catch (e) {
+        const cached = await cache.match(req);
+        return cached || (req.mode === 'navigate' ? cache.match('./index.html') : Response.error());
+      }
     })
   );
 });

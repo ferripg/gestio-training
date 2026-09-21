@@ -42,7 +42,7 @@ Per canviar el programa o la dieta només cal editar `program.js`: és tot dades
 ## Desenvolupament
 
 No cal instal·lar res. Edita els fitxers i obre `index.html` al navegador.
-Quan publiquis canvis, el mòbil els rebrà a la segona obertura de l'app.
+Quan publiquis canvis, el mòbil els rep a la primera obertura si té connexió (el service worker és *network-first*); sense connexió fa servir la versió guardada.
 
 ## Avís
 
