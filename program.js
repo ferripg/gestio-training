@@ -1,7 +1,7 @@
 /* program.js — Contingut del programa personalitzat (entrenament + dieta).
-   Dissenyat per a: home, 22 anys, 179 cm, 60 kg, hardgainer, principiant,
+   Dissenyat per a: home, 22 anys, 179 cm, 58 kg, hardgainer, principiant,
    3 dies/setmana de 30-45 min, material: Technogym Unica, cinta, rem, KB 12 kg, manuelles 2/8 kg.
-   Tot és dades: cap lògica aquí. La lògica de progressió és a app.js. */
+   Tot és dades: cap lògica aquí. La lògica de progressió i els càlculs són a app.js. */
 
 window.PROGRAM = {
   meta: {
@@ -274,7 +274,7 @@ window.PROGRAM = {
 
   finisher: {
     name: "Finisher opcional (màx. 2 dies/setmana)",
-    detail: "8-10 min de rem suau (20-22 palades/min) o cinta inclinada al 6-8% caminant ràpid. Només si tens temps i ganes: la prioritat és la força i menjar."
+    detail: "8-10 min de rem suau o cinta inclinada al 6-8% caminant ràpid. Només si tens temps i ganes."
   },
 
   restDay: {
@@ -282,121 +282,173 @@ window.PROGRAM = {
     items: [
       { name: "Posture snack (2 min)", detail: "Chin tucks ×10 · wall slides ×10 · estirament pectoral 30 s" },
       { name: "Caminar 20 min", detail: "Ritme tranquil; també val anar a peu a algun lloc" },
-      { name: "Batut i creatina", detail: "Els dies de descans també compten: el múscul es construeix avui" }
+      { name: "Menjar igual que un dia d'entrenament", detail: "El múscul es construeix avui" }
     ]
   },
 
   progressionRules: [
-    "Doble progressió: cada exercici té un rang de reps (ex. 8-12). Fes totes les sèries dins del rang.",
-    "Quan TOTES les sèries arriben al màxim del rang → la propera sessió puja: +5 kg a la Unica, o següent nivell als exercicis de pes corporal/KB, o +5 s a la planxa. L'app ho fa sola.",
-    "Si una sèrie no arriba al mínim del rang → mantens el pes/nivell. Sense pressa: la constància guanya.",
-    "Descansa 60-90 s entre sèries (el temporitzador t'avisa). L'última rep de cada sèrie ha de costar, però amb bona tècnica.",
-    "Setmana 8 = descàrrega: una sèrie menys a tot. Després comença un bloc nou.",
-    "Si un dia no pots, no el recuperis: continua amb la següent sessió al següent dia planificat."
+    "Cada exercici té un rang de reps (ex. 8-12). Fes totes les sèries dins del rang.",
+    "Quan totes les sèries arriben al màxim → la propera sessió puja sola: +5 kg a la Unica, següent nivell en calistènia, +5 s a la planxa.",
+    "Si una sèrie no arriba al mínim → mantens. Sense pressa.",
+    "L'última rep de cada sèrie ha de costar, però amb bona tècnica.",
+    "Setmana 8 = descàrrega: una sèrie menys a tot.",
+    "Si un dia no pots, no el recuperis: fes la següent sessió el següent dia planificat."
   ],
 
   notes: {
-    posture: "Tens el patró típic de feina asseguda: pectorals i flexors de maluc curts, esquena alta i glutis febles. Per això cada sessió porta rem/face pull/Y-T-W, pont de glutis i estiraments. Als dies de descans, el posture snack de 2 min. En 4-6 setmanes ho notaràs.",
-    pullupBar: "No cal barra de dominades: el jaló de la Unica cobreix la tracció vertical. Si més endavant en vols una de porta (~25 €), afegirem dominades negatives al programa.",
-    disclaimer: "Aquest programa són recomanacions generals de fitness i nutrició, no consells mèdics. Si el dolor d'esquena o de pelvis empitjora o apareix dolor agut en un exercici, para i consulta un fisioterapeuta."
+    posture: "Feina asseguda = pectorals i flexors de maluc curts, esquena alta i glutis febles. Per això cada sessió porta rem, face pull, Y-T-W, pont de glutis i estiraments. En 4-6 setmanes ho notaràs.",
+    pullupBar: "No cal barra de dominades: el jaló de la Unica cobreix la tracció vertical.",
+    disclaimer: "Recomanacions generals de fitness i nutrició, no consells mèdics. Si apareix dolor, para i consulta un fisioterapeuta."
   },
 
   milestones: [
     /* gain = kg per sobre del pes inicial del perfil */
-    { week: 2,  gain: 1.5, text: "Pes en marxa (+1-1,5 kg de glicogen i aigua). Dorms millor, menys mal d'esquena." },
-    { week: 4,  gain: 2,   text: "Força +20-40%: flexions ×2, +10 kg al jaló i al rem. Samarretes més justes a l'espatlla." },
-    { week: 8,  gain: 3.5, text: "Primer canvi visible al mirall: braços i pit més plens, postura més recta. Fes-te fotos!" },
-    { week: 13, gain: 5,   text: "La gent del teu voltant ho comenta. Passes a nivells superiors a l'esquat i al pont." },
-    { week: 26, gain: 7,   text: "Abdominals marcats si el greix es manté baix (en un hardgainer, sí)." },
-    { week: 40, gain: 9.5, text: "Objectiu: ~+10 kg amb poc greix. Aquí revisem: mantenir o continuar." }
+    { week: 2,  gain: 1.5, text: "Pes en marxa (glicogen i aigua). Dorms millor, menys mal d'esquena." },
+    { week: 4,  gain: 2,   text: "Força +20-40%: flexions ×2, +10 kg al jaló i al rem." },
+    { week: 8,  gain: 3.5, text: "Primer canvi visible al mirall: braços i pit més plens, postura més recta." },
+    { week: 13, gain: 5,   text: "La gent del teu voltant ho comenta." },
+    { week: 26, gain: 7,   text: "Abdominals marcats si el greix es manté baix." },
+    { week: 40, gain: 9.5, text: "Objectiu: +10 kg amb poc greix. Revisió del pla." }
   ],
 
-  /* ---------- Dieta ---------- */
+  /* ---------- Dieta ----------
+     Tot es calcula a partir d'ALIMENTS amb quantitat: cada opció és una llista [aliment, quantitat].
+     kcal/prot són per la quantitat "per" de l'aliment (valors nutricionals estàndard). */
   diet: {
-    intro: "Regla d'or del hardgainer: el superàvit ha de ser CADA DIA, no un dia sí i tres no. Calories líquides (batuts) i 5 àpats petits fan que sigui fàcil.",
+    intro: "Superàvit cada dia, no un dia sí i tres no. Toca un ingredient per treure'l si avui no l'has menjat.",
+    foods: {
+      iogurt:     { name: "Iogurt natural",              unit: "g",            per: 100, kcal: 61,  prot: 3.5 },
+      iogurtgrec: { name: "Iogurt grec natural",         unit: "g",            per: 100, kcal: 97,  prot: 9 },
+      maduixes:   { name: "Maduixes congelades",         unit: "g",            per: 100, kcal: 35,  prot: 0.7 },
+      chia:       { name: "Llavors de chia",             unit: "g",            per: 15,  kcal: 73,  prot: 2.5 },
+      whey:       { name: "Whey de maduixa",             unit: "scoop (30 g)", per: 1,   kcal: 120, prot: 24 },
+      creatina:   { name: "Creatina",                    unit: "g",            per: 5,   kcal: 0,   prot: 0 },
+      civada:     { name: "Civada",                      unit: "g",            per: 40,  kcal: 150, prot: 5.4 },
+      cacauet:    { name: "Crema de cacauet",            unit: "c.s. (15 g)",  per: 1,   kcal: 90,  prot: 3.8 },
+      llet:       { name: "Llet sencera",                unit: "ml",           per: 250, kcal: 160, prot: 8 },
+      platan:     { name: "Plàtan",                      unit: "peça",         per: 1,   kcal: 105, prot: 1.3 },
+      mel:        { name: "Mel",                         unit: "c.s.",         per: 1,   kcal: 60,  prot: 0 },
+      nous:       { name: "Nous o fruits secs",          unit: "g",            per: 30,  kcal: 190, prot: 5 },
+      datils:     { name: "Dàtils",                      unit: "peces",        per: 3,   kcal: 70,  prot: 0.5 },
+      pasta:      { name: "Pasta (pes en cru)",          unit: "g",            per: 100, kcal: 355, prot: 12.5 },
+      tonyina:    { name: "Tonyina en llauna",           unit: "llauna",       per: 1,   kcal: 100, prot: 15 },
+      pollastre:  { name: "Pollastre rostit",            unit: "g",            per: 100, kcal: 200, prot: 27 },
+      oli:        { name: "Oli d'oliva",                 unit: "c.s.",         per: 1,   kcal: 90,  prot: 0 },
+      tomaquet:   { name: "Tomàquet fregit",             unit: "g",            per: 50,  kcal: 40,  prot: 0.7 },
+      ou:         { name: "Ou",                          unit: "peça",         per: 1,   kcal: 75,  prot: 6.5 },
+      pa:         { name: "Pa integral",                 unit: "llesca",       per: 1,   kcal: 85,  prot: 3.5 },
+      formatge:   { name: "Formatge",                    unit: "g",            per: 30,  kcal: 110, prot: 7 },
+      alvocat:    { name: "Alvocat",                     unit: "meitat",       per: 1,   kcal: 115, prot: 1.5 },
+      hummus:     { name: "Hummus",                      unit: "g",            per: 50,  kcal: 90,  prot: 4 },
+      galldindi:  { name: "Gall dindi en llesques",      unit: "g",            per: 40,  kcal: 45,  prot: 8 },
+      arros:      { name: "Arròs precuit (bossa)",       unit: "g",            per: 125, kcal: 175, prot: 3.5 },
+      llegums:    { name: "Llegums de pot",              unit: "g",            per: 120, kcal: 130, prot: 8 },
+      sardines:   { name: "Sardines en llauna",          unit: "llauna",       per: 1,   kcal: 190, prot: 20 },
+      amanida:    { name: "Amanida en bossa",            unit: "g",            per: 100, kcal: 15,  prot: 1 },
+      fruita:     { name: "Peça de fruita",              unit: "peça",         per: 1,   kcal: 80,  prot: 0.5 },
+      platfora:   { name: "Plat combinat fora (estimació)", unit: "plat",      per: 1,   kcal: 800, prot: 35 },
+      platcasa:   { name: "Plat de casa (estimació)",    unit: "plat",         per: 1,   kcal: 400, prot: 20 }
+    },
     slots: [
       {
         id: "esmorzar", name: "Esmorzar", time: "~8h", required: true,
         options: [
-          { id: "e1", name: "El teu bol de sempre + 40 g civada + 1 c.s. crema de cacauet", kcal: 650, prot: 40,
-            how: "Al bol de iogurt, maduixes i chia afegeix-hi 40 g de civada (mig got) i una cullerada sopera de crema de cacauet. Amb el scoop de whey ja hi tens 40 g de proteïna." },
-          { id: "e2", name: "2 ous al microones + 2 torrades integrals + formatge + got de llet", kcal: 550, prot: 35,
-            how: "Bat 2 ous en un bol amb sal, microones 60-90 s (remena a la meitat). Posa'ls sobre les torrades amb formatge. Got de llet sencera al costat." }
+          { id: "e1", name: "El teu bol (+ civada i crema de cacauet)",
+            items: [["iogurt", 200], ["maduixes", 100], ["chia", 15], ["whey", 1], ["creatina", 5], ["civada", 40], ["cacauet", 1]],
+            how: "El bol de sempre: iogurt, maduixes, chia, whey i creatina. Afegeix-hi 40 g de civada i una cullerada de crema de cacauet. Si les quantitats no són les teves, digue-m'ho i les ajusto." },
+          { id: "e2", name: "Ous + torrades + formatge + llet",
+            items: [["ou", 2], ["pa", 2], ["formatge", 30], ["llet", 250]],
+            how: "2 ous batuts al microones 60-90 s, sobre 2 torrades amb formatge. Got de llet." }
         ]
       },
       {
-        id: "batut", name: "Batut de mig matí", time: "~11h", required: true,
+        id: "migmati", name: "Mig matí", time: "~11h", required: true,
         options: [
-          { id: "b1", name: "Batut hardgainer de maduixa (whey + creatina)", kcal: 750, prot: 45,
-            how: "1) 300 ml de llet sencera a la batedora. 2) 1 scoop de whey de maduixa (30 g) i 5 g de creatina — la pols després del líquid no fa grumolls. 3) 50 g de civada. 4) 1 plàtan i 3-4 maduixes congelades. 5) 1 cullerada sopera de crema de cacauet. Bat 30 s fins que no es vegi la civada. Beu-lo a la feina; es pot preparar la nit abans i guardar a la nevera." },
-          { id: "b2", name: "Versió shaker (sense batedora): llet + whey + creatina, i plàtan + nous a part", kcal: 600, prot: 40,
-            how: "Al shaker: 300 ml de llet sencera, 1 scoop de whey de maduixa, 5 g de creatina. Agita 20 s. A part menja 1 plàtan i un grapat de nous (30 g)." }
+          { id: "m1", name: "Llet + plàtan + nous",
+            items: [["llet", 250], ["platan", 1], ["nous", 30]],
+            how: "Per emportar a la feina. Zero preparació." },
+          { id: "m2", name: "Iogurt grec + mel + fruits secs",
+            items: [["iogurtgrec", 200], ["mel", 1], ["nous", 30]],
+            how: "Un iogurt grec gran, una cullerada de mel i un grapat de fruits secs." },
+          { id: "m3", name: "Batut extra (2n scoop del dia)",
+            items: [["llet", 300], ["whey", 1], ["civada", 50], ["platan", 1], ["cacauet", 1]],
+            how: "Només si l'esmorzar ha estat fluix o el pes no puja: 300 ml de llet, 1 scoop, 50 g de civada, plàtan i crema de cacauet a la batedora." }
         ]
       },
       {
         id: "dinar", name: "Dinar", time: "~14h", required: true,
         options: [
-          { id: "d1", name: "Tàper de pasta + llauna de tonyina (o pollastre rostit) + raig d'oli", kcal: 750, prot: 40,
-            how: "A la pasta del tàper afegeix-hi una llauna de tonyina escorreguda (o 100 g de pollastre rostit desfilat) i un bon raig d'oli d'oliva. Tomàquet fregit de pot si en tens. 2 min." },
-          { id: "d2", name: "Bossa d'arròs precuit + llegums de pot + ou dur + oli", kcal: 700, prot: 30,
-            how: "Arròs o quinoa de bossa al microones (1-2 min), mig pot de cigrons o llenties escorregut, 1-2 ous durs (es fan 10 en una olla el diumenge), oli i sal. Es munta a la nit en 4 min." },
-          { id: "d3", name: "Menjo fora: plat amb proteïna + arròs/pasta/patata", kcal: 800, prot: 40,
-            how: "Busca sempre proteïna (pollastre, ous, tonyina, llegums) amb arròs, pasta o patata. Res d'amanida sola. Demana pa." }
+          { id: "d1", name: "Tàper de pasta + tonyina + oli",
+            items: [["pasta", 100], ["tonyina", 1], ["oli", 1], ["tomaquet", 50]],
+            how: "A la pasta del tàper: una llauna de tonyina escorreguda, un raig d'oli i tomàquet fregit si en tens." },
+          { id: "d2", name: "Arròs de bossa + llegums + ous",
+            items: [["arros", 125], ["llegums", 120], ["ou", 2], ["oli", 1]],
+            how: "Arròs de bossa al microones, mig pot de llegums escorregut, 2 ous durs, oli i sal. Es munta en 4 min." },
+          { id: "d3", name: "Menjo fora",
+            items: [["platfora", 1]],
+            how: "Plat amb proteïna (pollastre, ous, tonyina, llegums) + arròs, pasta o patata. Res d'amanida sola. Valor estimat." }
         ]
       },
       {
-        id: "berenar", name: "Berenar (abans d'entrenar)", time: "~17-18h", required: true,
+        id: "berenar", name: "Berenar", time: "~17-18h", required: true,
         options: [
-          { id: "t1", name: "Entrepà de gall dindi o formatge + una fruita", kcal: 450, prot: 25,
-            how: "Pa integral, 3-4 llesques de gall dindi o formatge, oli. Una peça de fruita. Ideal 1-2 h abans d'entrenar." },
-          { id: "t2", name: "Grapat de fruits secs + fruita seca + got de llet", kcal: 450, prot: 15,
-            how: "30-40 g de fruits secs, 3-4 dàtils o panses, got de llet sencera. Per quan no tens temps de res." },
-          { id: "t3", name: "Batut post-entreno de maduixa (si entrenes tard, en arribar)", kcal: 420, prot: 35,
-            how: "250 ml de llet sencera + 1 scoop de whey de maduixa + 100 g de maduixes congelades + 1 c.s. de mel. Batedora 20 s o shaker sense les maduixes. Substitueix el berenar els dies que entrenes tard." }
+          { id: "t1", name: "Entrepà de gall dindi + fruita",
+            items: [["pa", 2], ["galldindi", 40], ["oli", 1], ["fruita", 1]],
+            how: "Ideal 1-2 h abans d'entrenar." },
+          { id: "t2", name: "Fruits secs + dàtils + llet",
+            items: [["nous", 30], ["datils", 3], ["llet", 250]],
+            how: "Per quan no tens temps de res." },
+          { id: "t3", name: "Batut post-entreno de maduixa",
+            items: [["llet", 250], ["whey", 1], ["maduixes", 100], ["mel", 1]],
+            how: "En arribar d'entrenar: llet, 1 scoop, maduixes congelades i mel. Batedora 20 s. Substitueix el berenar els dies que entrenes tard." }
         ]
       },
       {
         id: "sopar", name: "Sopar", time: "~21h", required: true,
         options: [
-          { id: "s1", name: "3 ous remenats al microones + pa + mig alvocat", kcal: 600, prot: 28,
-            how: "3 ous batuts en un bol amb sal i un raig d'oli, microones 90 s remenant a la meitat. Pa integral i mig alvocat aixafat amb sal. 4 min, un bol per netejar." },
-          { id: "s2", name: "Pollastre rostit del súper + bossa d'amanida + hummus + pa", kcal: 650, prot: 45,
-            how: "Un quart de pollastre rostit (el venen fet), bossa d'amanida amb oli, hummus per sucar el pa. Zero cuina." },
-          { id: "s3", name: "Llauna de sardines o tonyina + pa amb tomàquet i oli + formatge", kcal: 600, prot: 35,
-            how: "Pa amb tomàquet ratllat i oli, sardines o tonyina en llauna a sobre, un tros de formatge. 3 min." },
-          { id: "s4", name: "El que hi hagi a casa + got de llet + iogurt grec", kcal: 500, prot: 25,
-            how: "Dia sense res: menja el que hi hagi i afegeix-hi un got de llet sencera i un iogurt grec per pujar proteïna i calories." }
+          { id: "s1", name: "Ous remenats + pa + alvocat",
+            items: [["ou", 3], ["pa", 2], ["alvocat", 1], ["oli", 1]],
+            how: "3 ous batuts al microones 90 s (remena a la meitat). Pa i mig alvocat amb sal. Un bol per netejar." },
+          { id: "s2", name: "Pollastre rostit + amanida + hummus + pa",
+            items: [["pollastre", 150], ["amanida", 100], ["hummus", 50], ["pa", 2], ["oli", 1]],
+            how: "Un quart de pollastre rostit del súper, amanida de bossa, hummus per sucar el pa. Zero cuina." },
+          { id: "s3", name: "Sardines + pa amb tomàquet + formatge",
+            items: [["sardines", 1], ["pa", 2], ["oli", 1], ["formatge", 30]],
+            how: "Pa amb tomàquet i oli, sardines a sobre, un tros de formatge. 3 min." },
+          { id: "s4", name: "El que hi hagi + llet + iogurt grec",
+            items: [["platcasa", 1], ["llet", 250], ["iogurtgrec", 200]],
+            how: "Dia sense res: el que hi hagi a casa (valor estimat) i afegeix-hi un got de llet i un iogurt grec." }
         ]
       },
       {
-        id: "extra", name: "Extra de nit (opcional, si vas curt de calories)", time: "~23h", required: false,
+        id: "extra", name: "Extra de nit", time: "opcional", required: false,
         options: [
-          { id: "x1", name: "Bol proteic: iogurt grec + ½ scoop whey maduixa + civada + nous", kcal: 500, prot: 40,
-            how: "200 g de iogurt grec, barreja-hi mig scoop de whey de maduixa fins que quedi cremós, 30 g de civada o granola i un grapat de nous." },
-          { id: "x2", name: "Got de llet sencera + 2 torrades amb crema de cacauet", kcal: 450, prot: 18,
-            how: "El més ràpid que existeix. Perfecte just abans d'anar a dormir." }
+          { id: "x1", name: "Bol proteic: iogurt grec + ½ whey + civada + nous",
+            items: [["iogurtgrec", 200], ["whey", 0.5], ["civada", 30], ["nous", 30]],
+            how: "Barreja mig scoop de whey amb el iogurt fins que quedi cremós; civada i nous a sobre." },
+          { id: "x2", name: "Llet + torrades amb crema de cacauet",
+            items: [["llet", 250], ["pa", 2], ["cacauet", 2]],
+            how: "El més ràpid que existeix, just abans d'anar a dormir." }
         ]
       }
     ],
     extras: [
-      { id: "creatine", name: "Creatina 5 g", short: "Creatina", detail: "Cada dia, també els de descans. Dins del batut. No cal fase de càrrega." },
-      { id: "sleep", name: "He dormit 7 h o més (aquesta nit)", short: "Son ≥7 h", detail: "El múscul es construeix dormint. Hora fixa d'anar al llit." },
+      { id: "sleep", name: "He dormit 7 h o més", short: "Son ≥7 h", detail: "El múscul es construeix dormint." },
       { id: "water", name: "Aigua ≥2 L", short: "Aigua", detail: "Amb la creatina, l'aigua importa més." }
     ],
     shopping: [
-      "Civada (1 kg)", "Llet sencera (6-8 L)", "Crema de cacauet (pot gran)", "Plàtans (7-10)", "Maduixes congelades",
-      "Ous (2 dotzenes)", "Tonyina en llauna (5-6)", "Sardines en llauna (3)", "Pollastre rostit (1-2 a la setmana)",
-      "Iogurt grec (7)", "Formatge (cunya o llesques)", "Pa integral", "Hummus (2 pots)", "Fruits secs mixtos (500 g)",
-      "Dàtils o panses", "Bosses d'arròs/quinoa precuit (4)", "Llegums de pot (3)", "Amanida en bossa (3)",
-      "Alvocats (3)", "Gall dindi en llesques", "Mel", "Oli d'oliva", "Whey de maduixa (comprovar estoc)", "Creatina (comprovar estoc)"
+      "Civada (1 kg)", "Llet sencera (6-8 L)", "Crema de cacauet", "Plàtans (7-10)", "Maduixes congelades",
+      "Iogurt natural (7)", "Iogurt grec (7)", "Ous (2 dotzenes)", "Tonyina en llauna (5-6)", "Sardines en llauna (3)",
+      "Pollastre rostit (1-2)", "Formatge", "Pa integral", "Hummus (2)", "Fruits secs (500 g)", "Dàtils",
+      "Arròs precuit en bossa (4)", "Llegums de pot (3)", "Amanida en bossa (3)", "Alvocats (3)", "Gall dindi en llesques",
+      "Mel", "Oli d'oliva", "Whey de maduixa", "Creatina"
     ],
     tips: [
-      "Llet en lloc d'aigua als àpats: +150 kcal i 8 g de proteïna per got sense esforç.",
-      "Oli d'oliva a tot: una cullerada són 120 kcal que no omplen.",
-      "El batut de mig matí és innegociable: si te'l saltes, el sopar no ho compensa.",
+      "Llet en lloc d'aigua als àpats: +160 kcal i 8 g de proteïna per got.",
+      "Oli d'oliva a tot: una cullerada són 90 kcal que no omplen.",
       "Compra el diumenge amb la llista. Sense menjar a casa no hi ha pla.",
-      "Els dies de McDonald's no compten com a 'menjar molt': compta la mitjana de la setmana, i això ho veu la bàscula.",
-      "Pesa't cada matí després d'anar al lavabo i abans d'esmorzar. El que importa és la mitjana de 7 dies, no el dia."
+      "Els McDonald's puntuals no compten: compta la mitjana de la setmana, i això ho veu la bàscula.",
+      "Pesa't cada matí després del lavabo. El que importa és la mitjana de 7 dies."
     ]
   }
 };

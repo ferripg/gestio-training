@@ -257,6 +257,15 @@ label.field > span { display: block; margin-bottom: 4px; }
 }
 .opt-check.on, .option.selected .opt-check { background: var(--good-bg); border-color: var(--good); }
 
+/* Ingredients d'una opció de dieta (toca per treure'l avui) */
+.ings { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ing {
+  border: 1px solid var(--good); background: var(--surface); color: var(--ink);
+  border-radius: 999px; padding: 4px 9px; font-size: 0.74rem; font-family: inherit; cursor: pointer;
+}
+.ing.off { border-color: var(--border); color: var(--muted); text-decoration: line-through; }
+details summary { cursor: pointer; }
+
 .check-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; cursor: pointer; }
 .check-row + .check-row { border-top: 1px solid var(--grid); }
 
