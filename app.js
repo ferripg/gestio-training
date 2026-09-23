@@ -1513,49 +1513,110 @@
   /* ---- Compte enrere únic: descans entre sèries, planxa, escalfament ----
      Un sol temporitzador actiu al pastilló #restPill, amb pausa, +30 s i aturar. */
 
-  let cd = null;   // { kind: 'rest'|'hold'|'warm', label, endsAt, remainingMs, paused, onDone, lastTick }
-  let cdTicker = null, cdHideTimeout = null;
+  // cd = { kind: 'rest'|'hold'|'warm', label, phase: 'prep'|'main', prepSecs, secs, endsAt, remainingMs, paused, onDone, lastTick, full }
+  let cd = null;
+  let cdTicker = null, cdHideTimeout = null, wakeLock = null;
 
   function fmtSecs(total) {
     const m = Math.floor(total / 60), s = total % 60;
     return `${m}:${String(s).padStart(2, '0')}`;
   }
 
+  // opts: { kind, label, secs, prep (segons de "Prepara't"), fullscreen, onDone }
   function startCountdown(opts) {
     if (!opts.secs || opts.secs <= 0) return;
     clearTimeout(cdHideTimeout);
-    cd = { kind: opts.kind, label: opts.label, endsAt: Date.now() + opts.secs * 1000, remainingMs: 0, paused: false, onDone: opts.onDone || null, lastTick: null };
+    const prep = opts.prep || 0;
+    cd = {
+      kind: opts.kind, label: opts.label, secs: opts.secs, prepSecs: prep,
+      phase: prep > 0 ? 'prep' : 'main',
+      endsAt: Date.now() + (prep > 0 ? prep : opts.secs) * 1000,
+      remainingMs: 0, paused: false, onDone: opts.onDone || null, lastTick: null, full: !!opts.fullscreen
+    };
     $('#restPill').classList.remove('hidden', 'finished', 'paused');
     $('#restPause').textContent = '⏸';
+    if (cd.full) openTimerScreen(); else closeTimerScreen();
     if (!cdTicker) cdTicker = setInterval(tickCountdown, 250);
     tickCountdown();
   }
 
-  function cdText(left) {
-    // Etiqueta curta perquè càpiga al mòbil: sense parèntesis i màxim 16 caràcters
+  function shortLabel() {
     let label = String(cd.label || '').replace(/\s*\(.*?\)/g, '').trim();
     if (label.length > 16) label = label.slice(0, 15) + '…';
+    return label;
+  }
+
+  function cdText(left) {
     // El temps sempre primer: si cal retallar, es retalla el nom
-    return cd.kind === 'rest' ? `Descans ${fmtSecs(left)} · ${label}` : `${fmtSecs(left)} · ${label}`;
+    if (cd.phase === 'prep') return `Prepara't ${left} · ${shortLabel()}`;
+    return cd.kind === 'rest' ? `Descans ${fmtSecs(left)} · ${shortLabel()}` : `${fmtSecs(left)} · ${shortLabel()}`;
+  }
+
+  /* ---- Pantalla sencera ---- */
+
+  async function keepAwake(on) {
+    try {
+      if (on && 'wakeLock' in navigator && !wakeLock) wakeLock = await navigator.wakeLock.request('screen');
+      if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+    } catch (e) { /* sense wake lock no passa res */ }
+  }
+
+  function openTimerScreen() {
+    const s = $('#overlay-timer');
+    s.classList.remove('hidden', 'finished', 'main', 'paused');
+    keepAwake(true);
+  }
+
+  function closeTimerScreen() {
+    const s = $('#overlay-timer');
+    if (s) s.classList.add('hidden');
+    keepAwake(false);
+  }
+
+  function renderTimerScreen(left) {
+    if (!cd) return;
+    const s = $('#overlay-timer');
+    const total = cd.phase === 'prep' ? cd.prepSecs : cd.secs;
+    $('#tLabel').textContent = cd.label;
+    $('#tPhase').textContent = cd.phase === 'prep' ? "Prepara't" : cd.kind === 'hold' ? 'Aguanta!' : cd.kind === 'rest' ? 'Descans' : 'Endavant';
+    $('#tTime').textContent = cd.phase === 'prep' ? String(left) : fmtSecs(left);
+    $('#tFill').style.width = `${Math.max(0, Math.min(100, left / total * 100))}%`;
+    s.classList.toggle('main', cd.phase === 'main');
+    s.classList.toggle('paused', !!cd.paused);
+    $('#tPause').textContent = cd.paused ? '▶' : '⏸';
   }
 
   function tickCountdown() {
     if (!cd || cd.paused) return;
     const left = Math.ceil((cd.endsAt - Date.now()) / 1000);
     if (left <= 0) {
+      if (cd.phase === 'prep') {
+        // Fi del "Prepara't": comença el temps de veritat
+        cd.phase = 'main';
+        cd.endsAt = Date.now() + cd.secs * 1000;
+        cd.lastTick = null;
+        beep();
+        if (navigator.vibrate) navigator.vibrate(150);
+        $('#restTime').textContent = cdText(cd.secs);
+        if (cd.full) renderTimerScreen(cd.secs);
+        return;
+      }
       const done = cd;
       clearInterval(cdTicker); cdTicker = null; cd = null;
-      $('#restTime').textContent = done.kind === 'rest' ? 'Descans acabat! 💥' : 'Temps! 💥';
+      const msg = done.kind === 'rest' ? 'Descans acabat! 💥' : 'Temps! 💥';
+      $('#restTime').textContent = msg;
       $('#restPill').classList.add('finished');
+      if (done.full) { $('#tTime').textContent = '0'; $('#tPhase').textContent = msg; $('#tFill').style.width = '0%'; $('#overlay-timer').classList.add('finished'); }
       beep();
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-      cdHideTimeout = setTimeout(() => $('#restPill').classList.add('hidden'), 4000);
+      cdHideTimeout = setTimeout(() => { $('#restPill').classList.add('hidden'); if (!cd) closeTimerScreen(); }, done.full ? 2500 : 4000);
       if (done.onDone) done.onDone();
       return;
     }
-    // Als exercicis de temps, bip curt als últims 3 segons
-    if (cd.kind !== 'rest' && left <= 3 && cd.lastTick !== left) { cd.lastTick = left; beep(true); }
+    // Bip curt als últims 3 segons (preparació i exercicis de temps)
+    if ((cd.kind !== 'rest' || cd.phase === 'prep') && left <= 3 && cd.lastTick !== left) { cd.lastTick = left; beep(true); }
     $('#restTime').textContent = cdText(left);
+    if (cd.full) renderTimerScreen(left);
   }
 
   function pauseCountdown() {
@@ -1564,6 +1625,7 @@
     cd.remainingMs = Math.max(0, cd.endsAt - Date.now());
     $('#restPill').classList.add('paused');
     $('#restPause').textContent = '▶';
+    if (cd.full) renderTimerScreen(Math.ceil(cd.remainingMs / 1000));
   }
 
   function resumeCountdown() {
@@ -1580,6 +1642,7 @@
     if (cd.paused) {
       cd.remainingMs += secs * 1000;
       $('#restTime').textContent = cdText(Math.ceil(cd.remainingMs / 1000));
+      if (cd.full) renderTimerScreen(Math.ceil(cd.remainingMs / 1000));
     } else {
       cd.endsAt += secs * 1000;
       tickCountdown();
@@ -1591,12 +1654,13 @@
     clearTimeout(cdHideTimeout);
     const pill = $('#restPill');
     if (pill) pill.classList.add('hidden');
+    closeTimerScreen();
   }
 
   // Descans després d'una sèrie: el propi de l'exercici, o el global per a rutines pròpies
-  function startRest(entry) {
+  function startRest(entry, fullscreen) {
     const secs = (entry && entry.rest) || data.settings.restSecs || 0;
-    startCountdown({ kind: 'rest', label: entry ? entry.name : 'Descans', secs });
+    startCountdown({ kind: 'rest', label: entry ? entry.name : 'Descans', secs, fullscreen: !!fullscreen });
   }
 
   function stopRest() { stopCountdown(); }
@@ -1733,23 +1797,24 @@
     o.querySelectorAll('[data-wuinfo]').forEach(b => b.onclick = () => showItemInfo(P.warmup[Number(b.dataset.wuinfo)]));
     o.querySelectorAll('[data-cdinfo]').forEach(b => b.onclick = () => showItemInfo(P.cooldown[Number(b.dataset.cdinfo)]));
     // ▶ als ítems d'escalfament/refredament amb durada: en acabar es marquen sols
+    // ▶ escalfament/refredament: pantalla sencera amb 5 s de preparació; en acabar es marquen sols
     o.querySelectorAll('[data-wuplay]').forEach(b => b.onclick = () => {
       const i = Number(b.dataset.wuplay), it = P.warmup[i];
-      startCountdown({ kind: 'warm', label: it.name, secs: it.secs, onDone: () => { if (draft && draft.warmup) { draft.warmup[i] = true; saveDraft(); renderWorkout(); } } });
+      startCountdown({ kind: 'warm', label: it.name, secs: it.secs, prep: 5, fullscreen: true, onDone: () => { if (draft && draft.warmup) { draft.warmup[i] = true; saveDraft(); renderWorkout(); } } });
     });
     o.querySelectorAll('[data-cdplay]').forEach(b => b.onclick = () => {
       const i = Number(b.dataset.cdplay), it = P.cooldown[i];
-      startCountdown({ kind: 'warm', label: it.name, secs: it.secs, onDone: () => { if (draft && draft.cooldown) { draft.cooldown[i] = true; saveDraft(); renderWorkout(); } } });
+      startCountdown({ kind: 'warm', label: it.name, secs: it.secs, prep: 5, fullscreen: true, onDone: () => { if (draft && draft.cooldown) { draft.cooldown[i] = true; saveDraft(); renderWorkout(); } } });
     });
-    // ▶ a les sèries de temps (planxa): en acabar, sèrie feta + descans
+    // ▶ a les sèries de temps (planxa): pantalla sencera, 5 s per col·locar-te, temps, i el descans segueix a pantalla sencera
     o.querySelectorAll('[data-hold]').forEach(b => b.onclick = () => {
       const [i, j] = b.dataset.hold.split('-').map(Number);
       const e = draft.entries[i];
-      startCountdown({ kind: 'hold', label: e.name, secs: e.sets[j].reps || 0, onDone: () => {
+      startCountdown({ kind: 'hold', label: e.name, secs: e.sets[j].reps || 0, prep: 5, fullscreen: true, onDone: () => {
         if (!draft || !draft.entries[i]) return;
         draft.entries[i].sets[j].done = true;
         saveDraft(); renderWorkout();
-        startRest(draft.entries[i]);
+        setTimeout(() => { if (draft && draft.entries[i]) startRest(draft.entries[i], true); }, 2000);
       } });
     });
     if ($('#btnPauseSession')) $('#btnPauseSession').onclick = toggleSessionPause;
@@ -1949,6 +2014,12 @@
   $('#restPlus').onclick = () => addCountdown(30);
   $('#restStop').onclick = stopCountdown;
   $('#restPause').onclick = () => { if (!cd) return; if (cd.paused) resumeCountdown(); else pauseCountdown(); };
+  // Tocar el pastilló → pantalla sencera
+  $('#restTime').onclick = () => { if (!cd) return; cd.full = true; openTimerScreen(); renderTimerScreen(Math.ceil((cd.paused ? cd.remainingMs : cd.endsAt - Date.now()) / 1000)); };
+  $('#tPause').onclick = () => { if (!cd) return; if (cd.paused) resumeCountdown(); else pauseCountdown(); };
+  $('#tPlus').onclick = () => addCountdown(30);
+  $('#tStop').onclick = stopCountdown;
+  $('#tMin').onclick = () => { if (cd) cd.full = false; closeTimerScreen(); };
 
   setupSettings();
   showView('avui');

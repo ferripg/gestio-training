@@ -50,6 +50,20 @@
     <button id="restStop" class="btn small" title="Aturar">✕</button>
   </div>
 
+  <!-- Temporitzador a pantalla sencera (planxa, estiraments, escalfament, descans) -->
+  <div id="overlay-timer" class="timer-screen hidden">
+    <div class="t-label" id="tLabel"></div>
+    <div class="t-phase" id="tPhase"></div>
+    <div class="t-time" id="tTime">0:30</div>
+    <div class="t-bar"><div class="t-fill" id="tFill"></div></div>
+    <div class="row t-btns">
+      <button class="btn" id="tPause" title="Pausa">⏸</button>
+      <button class="btn" id="tPlus">+30 s</button>
+      <button class="btn danger" id="tStop">✕ Atura</button>
+    </div>
+    <button class="btn ghost" id="tMin" style="margin-top:14px">Minimitza</button>
+  </div>
+
   <!-- Fitxa d'exercici -->
   <div id="modal-exercise" class="modal-backdrop hidden"><div class="modal"></div></div>
 

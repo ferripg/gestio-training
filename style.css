@@ -289,6 +289,24 @@ details summary { cursor: pointer; }
 .rest-pill.paused span { color: var(--muted); }
 .modal a.btn { text-decoration: none; }
 
+/* ===== Temporitzador a pantalla sencera ===== */
+.timer-screen {
+  position: fixed; inset: 0; z-index: 60; background: var(--page);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px; text-align: center;
+}
+.t-label { font-size: 1.1rem; font-weight: 600; color: var(--ink-2); }
+.t-phase { font-size: 1.5rem; font-weight: 700; margin-top: 6px; color: var(--accent); }
+.t-time { font-size: clamp(96px, 28vw, 180px); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; margin: 18px 0; }
+.t-bar { width: 80%; max-width: 420px; height: 10px; background: var(--grid); border-radius: 999px; overflow: hidden; }
+.t-fill { height: 100%; background: var(--accent); transition: width 0.25s linear; }
+.timer-screen.main .t-phase, .timer-screen.finished .t-phase { color: var(--good); }
+.timer-screen.main .t-fill { background: var(--good); }
+.timer-screen.paused .t-time { color: var(--muted); }
+.t-btns { margin-top: 28px; gap: 10px; }
+.t-btns .btn { padding: 12px 18px; font-size: 1.05rem; }
+.rest-pill #restTime { cursor: pointer; }
+
 /* ===== Temporitzador de descans ===== */
 .rest-pill {
   position: fixed; z-index: 45;
