@@ -2,7 +2,7 @@
    Dissenyat per a: home, 22 anys, 179 cm, 58 kg, hardgainer, principiant,
    3 dies/setmana de 30-45 min. Material a casa: manuelles ajustables (fins a ~20 kg), banc inclinable,
    Technogym Unica (jaló, coixí de bíceps, politja baixa...), cinta, rem, KB 12 kg.
-   Versió 3 (25/10/2026): manuelles + banc, 5 exercicis per sessió, esquat i hip thrust a totes dues
+   Versió 3 (25/10/2026): manuelles + banc, 5 exercicis per sessió, esquat i pont de glutis a totes dues
    sessions per aprendre'ls abans, i a cada exercici: on l'has de notar, què comprovar i quan parar. Tot és dades. */
 
 window.PROGRAM = {
@@ -35,7 +35,7 @@ window.PROGRAM = {
            "level" → progressa canviant a la següent variant de la llista levels
            "time"  → progressa afegint segons (planxa)
      feel: on l'has de notar · check: què mirar al vídeo de tu mateix · stop: quan parar o canviar
-     pose: analitzador de pose.js per comprovar la tècnica amb la càmera (squat, hipthrust, lateral, tricep)
+     pose: analitzador de pose.js per comprovar la tècnica amb la càmera (squat, bridge, lateral, tricep)
      alt: què fer si no pots fer l'exercici tal com és */
   exercises: {
     gobletbox: {
@@ -127,22 +127,22 @@ window.PROGRAM = {
       alt: "Si 3 kg és massa: fes-ho amb la barra de la manuella sense discos.",
       mistake: "Fer-ho amb massa pes i impuls: llavors treballa el coll, no l'espatlla."
     },
-    hipthrust: {
-      name: "Hip thrust al banc", kind: "load", startLoad: 8, step: 2, pose: "hipthrust",
-      muscle: "Glutis — clau per a l'esquena i la pelvis", equip: "Banc pla · 1 manuella · tovallola",
+    bridge: {
+      name: "Pont de glutis amb manuella", kind: "load", startLoad: 8, step: 2, pose: "bridge",
+      muscle: "Glutis — clau per a l'esquena i la pelvis", equip: "Terra · 1 manuella · tovallola",
       cues: [
-        "Seu a terra amb la part de sota de les escàpules contra el lateral del banc. Manuella sobre el maluc, amb una tovallola",
-        "Peus a l'amplada del maluc. Empeny amb els talons fins que tronc i cuixes facin una taula, mentó cap al pit",
-        "Apreta el cul 2 s a dalt i baixa a poc a poc"
+        "Estirat d'esquena a terra, genolls doblats, peus a prop del cul i a l'amplada del maluc",
+        "Manuella travessada sobre el maluc (amb una tovallola), aguantada amb les dues mans",
+        "Empeny amb els talons i puja el maluc fins que genolls, maluc i espatlles facin una línia. Apreta el cul 2 s i baixa a poc a poc"
       ],
       feel: "Cul, molt. Si ho notes a la lumbar o darrere la cuixa, ajusta.",
       check: [
-        "A dalt, la canyella queda vertical (genolls a 90°)",
-        "No arquejes la lumbar: les costelles no s'obren",
-        "Mires endavant, no al sostre"
+        "A dalt, genolls, maluc i espatlles en línia recta",
+        "No arquejes la lumbar: les costelles avall",
+        "Els talons no s'aixequen del terra"
       ],
       stop: "Lumbar: puja menys i apreta el cul. Darrere la cuixa: acosta els peus.",
-      alt: "Si molesta: pont de glutis a terra sense pes.",
+      alt: "Si 8 kg és massa: sense pes.",
       mistake: "Arquejar la lumbar per pujar més."
     },
     bicep: {
@@ -190,8 +190,7 @@ window.PROGRAM = {
     inclinerow:    [{ id: "8Q4kzzydoRA", title: "Rem amb manuelles al banc inclinat (Effort Gym)" }],
     lateralraise:  [{ id: "Vh_Kjw3O-DQ", title: "Elevacions laterals, fes-les així (Alberto Mareque)" }],
     ohtricep:      [{ id: "KZUytRrvghc", title: "Extensió de tríceps per sobre el cap (Rodrigo Oscos)" }],
-    hipthrust:     [{ id: "cIHC3lhgkNk", title: "Hip thrust amb manuella (Fer Strongg)" },
-                    { id: "vmx-4TMYNK4", title: "Com fer bé el hip thrust (Lydia Bellamy)" }],
+    bridge:        [{ id: "QIQtIs6yfXk", title: "Pont de glutis ben fet (sofitmami)" }],
     bicep:         [{ id: "uXaz4wPNaxs", title: "Curl de bíceps al coixí (Zona del Entrenador)" }],
     "Cinta o rem suau": [{ id: "vj8MVU2UiEk", title: "Si tries el rem: com remar bé (Fran, entrenador de remers)" }],
     "Gat-camell": [{ id: "gWbfVPK4RAU", title: "Gat-camell (Consorci Sanitari Integral, en català)" }],
@@ -203,12 +202,12 @@ window.PROGRAM = {
   /* Descans després de cada sèrie (segons), per exercici */
   restSecs: {
     gobletbox: 90, chestpress: 90, latpull: 90, inclinerow: 90,
-    hipthrust: 75, lateralraise: 60, ohtricep: 60, bicep: 60
+    bridge: 75, lateralraise: 60, ohtricep: 60, bicep: 60
   },
 
   /* ---------- Sessions ----------
      Criteri: fàcil de fer bé (recolzat al banc o a la màquina) i molt efectiu (músculs grans, recorregut complet).
-     L'esquat i el hip thrust surten a totes dues: com més els repeteixes, abans els aprens */
+     L'esquat i el pont de glutis surten a totes dues: com més els repeteixes, abans els aprens */
   workouts: {
     A: {
       name: "Sessió A", focus: "Cames, pit, esquena, tríceps",
@@ -216,7 +215,7 @@ window.PROGRAM = {
         { ex: "gobletbox", sets: 3, reps: [8, 12] },
         { ex: "chestpress", sets: 3, reps: [8, 12] },
         { ex: "latpull",   sets: 3, reps: [8, 12] },
-        { ex: "hipthrust", sets: 3, reps: [10, 15] },
+        { ex: "bridge",    sets: 3, reps: [10, 15] },
         { ex: "ohtricep",  sets: 2, reps: [10, 15] }
       ]
     },
@@ -226,7 +225,7 @@ window.PROGRAM = {
         { ex: "gobletbox",    sets: 3, reps: [8, 12] },
         { ex: "inclinerow",   sets: 3, reps: [8, 12] },
         { ex: "lateralraise", sets: 3, reps: [12, 20] },
-        { ex: "hipthrust",    sets: 3, reps: [10, 15] },
+        { ex: "bridge",       sets: 3, reps: [10, 15] },
         { ex: "bicep",        sets: 2, reps: [10, 12] }
       ]
     }
@@ -269,7 +268,7 @@ window.PROGRAM = {
   ],
 
   notes: {
-    posture: "Feina asseguda = pit tancat, esquena alta i glutis febles. Per això hi ha rem, hip thrust i estiraments cada setmana.",
+    posture: "Feina asseguda = pit tancat, esquena alta i glutis febles. Per això hi ha rem, pont de glutis i estiraments cada setmana.",
     pullupBar: "",
     disclaimer: "Recomanacions generals de fitness i nutrició, no consells mèdics. Si apareix dolor, para i consulta un fisioterapeuta."
   },

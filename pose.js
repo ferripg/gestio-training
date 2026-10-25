@@ -82,7 +82,8 @@
       }
     },
 
-    hipthrust: {
+    // Pont de glutis a terra: estirat, el maluc fa uns 135° a baix i 180° a dalt (en línia)
+    bridge: {
       view: 'side', need: ['shoulder', 'hip', 'knee', 'ankle'],
       bones: [['shoulder', 'hip'], ['hip', 'knee'], ['knee', 'ankle']],
       setup: "Mòbil a terra a 2 m, DE COSTAT: que es vegin espatlles, maluc, genolls i peus.",
@@ -93,8 +94,8 @@
         if (a < 150 && s) st.flexSign = s;
         return st.flexSign && s && s !== st.flexSign ? 360 - a : a;
       },
-      rest: m => m < 125,
-      active: m => m > 140,
+      rest: m => m < 145,
+      active: m => m > 157,
       track(J, rep, m, t) {
         if (m > (rep.max ?? 0)) { rep.max = m; rep.knee = angle(J.hip, J.knee, J.ankle); }
         if (m > 165) rep.hold = (rep.hold || 0) + (t - (rep.tPrev ?? t));
@@ -102,8 +103,8 @@
       },
       judge(rep) {
         const f = [];
-        if (rep.max > 198) f.push("No arquegis la lumbar, fins a fer una taula n'hi ha prou");
-        else if (rep.max < 165) f.push("Puja més, apreta el cul fins a fer una taula");
+        if (rep.max > 198) f.push("No arquegis la lumbar, fins a fer una línia n'hi ha prou");
+        else if (rep.max < 165) f.push("Puja més, apreta el cul fins a fer una línia");
         if (rep.knee > 115) f.push("Acosta els peus al cul");
         else if (rep.knee < 65) f.push("Allunya una mica els peus");
         if (!(rep.hold >= 0.8)) f.push("Aguanta 2 segons a dalt");
