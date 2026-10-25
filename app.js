@@ -828,6 +828,7 @@
       <h2>${esc(ex.name)}</h2>
       <p class="muted">${esc(ex.muscle)} · ${esc(ex.equip)}</p>
       ${vids.map(videoEmbedHtml).join('')}
+      ${hasPose(ex) ? `<button class="btn full" id="btnPoseInfo" style="margin:4px 0 8px">📷 Comprova la tècnica amb la càmera</button>` : ''}
       ${vids.length ? '' : `<a class="btn" href="${esc(ex.video)}" target="_blank" rel="noopener" style="margin:8px 0">▶️ Veure vídeos de la tècnica</a>`}
       <p style="margin:10px 0">${state}</p>
       <h3 style="margin-bottom:4px">Tècnica</h3>
@@ -836,6 +837,16 @@
       <p style="margin-top:10px"><b>Error habitual:</b> <span class="muted">${esc(ex.mistake)}</span></p>
       ${ex.alt ? `<p style="margin-top:6px"><b>Si no pots:</b> <span class="muted">${esc(ex.alt)}</span></p>` : ''}
       ${ex.levels ? `<h3 style="margin:10px 0 4px">Nivells</h3>` + ex.levels.map((l, i) => `<div class="ex-line ${i === s.level ? '' : 'muted'}">${i === s.level ? '▶' : '○'} ${esc(l)}</div>`).join('') : ''}`);
+    if ($('#btnPoseInfo')) $('#btnPoseInfo').onclick = () => {
+      $('#modal-exercise').classList.add('hidden');
+      $('#modal-exercise .modal').innerHTML = '';
+      window.PoseCheck.open({ type: ex.pose, name: ex.name });
+    };
+  }
+
+  // Comprovació amb la càmera (pose.js) per als exercicis que en tenen analitzador
+  function hasPose(ex) {
+    return !!(ex && ex.pose && window.PoseCheck && navigator.mediaDevices);
   }
 
   // Repàs abans de començar: tots els clips de la sessió i 3 claus per exercici, en 3 minuts
@@ -1771,7 +1782,7 @@
       const prevTxt = prev ? perfLabel(prev) : '';
       html += `<div class="card">
         <div class="spread" style="margin-bottom:4px">
-          <h3>${esc(e.name)}${e.exKey ? ` <span class="info-btn" data-info="${e.exKey}">ⓘ</span>` : ''}</h3>
+          <h3>${esc(e.name)}${e.exKey ? ` <span class="info-btn" data-info="${e.exKey}">ⓘ</span>` : ''}${hasPose(P.exercises[e.exKey]) ? ` <span class="info-btn" data-pose="${i}" title="Comprova la tècnica amb la càmera">📷</span>` : ''}</h3>
           <div class="row">
             <span class="chip ${e.mode === 'cardio' ? 'cardio' : ''}">${e.mode === 'cardio' ? 'Cardio' : e.timed ? 'Temps' : 'Força'}</span>
             <button class="btn small danger" data-rmex="${i}">✕</button>
@@ -1853,6 +1864,21 @@
     });
     if ($('#btnPauseSession')) $('#btnPauseSession').onclick = toggleSessionPause;
     o.querySelectorAll('[data-info]').forEach(el => el.onclick = () => showExerciseInfo(el.dataset.info));
+    // 📷 → la càmera compta les reps i, en acabar, les apunta a la primera sèrie pendent
+    o.querySelectorAll('[data-pose]').forEach(el => el.onclick = () => {
+      const i = Number(el.dataset.pose), e = draft.entries[i];
+      const j = e.sets.findIndex(st => !st.done);
+      window.PoseCheck.open({
+        type: P.exercises[e.exKey].pose, name: e.name,
+        saveLabel: j >= 0 ? `a la sèrie ${j + 1}` : '',
+        onSave: j < 0 ? null : reps => {
+          if (!draft || !draft.entries[i]) return;
+          Object.assign(draft.entries[i].sets[j], { reps, done: true });
+          saveDraft(); renderWorkout();
+          startRest(draft.entries[i]);
+        }
+      });
+    });
     o.querySelectorAll('[data-s]').forEach(inp => {
       inp.oninput = () => {
         const e = draft.entries[Number(inp.dataset.i)];

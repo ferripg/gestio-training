@@ -35,10 +35,11 @@ window.PROGRAM = {
            "level" → progressa canviant a la següent variant de la llista levels
            "time"  → progressa afegint segons (planxa)
      feel: on l'has de notar · check: què mirar al vídeo de tu mateix · stop: quan parar o canviar
+     pose: analitzador de pose.js per comprovar la tècnica amb la càmera (squat, hipthrust, lateral, tricep)
      alt: què fer si no pots fer l'exercici tal com és */
   exercises: {
     gobletbox: {
-      name: "Esquat al banc amb manuella", kind: "load", startLoad: 8, step: 2,
+      name: "Esquat al banc amb manuella", kind: "load", startLoad: 8, step: 2, pose: "squat",
       muscle: "Cames i glutis", equip: "1 manuella · banc pla darrere teu",
       cues: [
         "Banc pla darrere teu. Aguanta una manuella vertical contra el pit, amb les dues mans sota el disc de dalt",
@@ -110,7 +111,7 @@ window.PROGRAM = {
       mistake: "Aixecar el pit del banc per fer força amb l'esquena o el coll."
     },
     lateralraise: {
-      name: "Elevacions laterals", kind: "load", startLoad: 3, step: 1, perHand: true,
+      name: "Elevacions laterals", kind: "load", startLoad: 3, step: 1, perHand: true, pose: "lateral",
       muscle: "Espatlla (costat) — és el que fa l'esquena més ampla", equip: "2 manuelles lleugeres",
       cues: [
         "Dret o assegut a la vora del banc, manuelles als costats, colzes una mica doblats i fixos",
@@ -128,7 +129,7 @@ window.PROGRAM = {
       mistake: "Fer-ho amb massa pes i impuls: llavors treballa el coll, no l'espatlla."
     },
     hipthrust: {
-      name: "Hip thrust al banc", kind: "load", startLoad: 8, step: 2,
+      name: "Hip thrust al banc", kind: "load", startLoad: 8, step: 2, pose: "hipthrust",
       muscle: "Glutis — clau per a l'esquena i la pelvis", equip: "Banc pla · 1 manuella · tovallola",
       cues: [
         "Seu a terra amb la part de sota de les escàpules contra el lateral del banc. Manuella sobre el maluc, amb una tovallola",
@@ -162,7 +163,7 @@ window.PROGRAM = {
       mistake: "Aixecar els colzes del coixí o fer-ho amb l'esquena."
     },
     ohtricep: {
-      name: "Extensió de tríceps per sobre el cap", kind: "load", startLoad: 6, step: 2,
+      name: "Extensió de tríceps per sobre el cap", kind: "load", startLoad: 6, step: 2, pose: "tricep",
       muscle: "Tríceps — 2/3 del braç", equip: "1 manuella · banc gairebé vertical",
       cues: [
         "Seu amb l'esquena recolzada al banc vertical. Aguanta una manuella amb les dues mans, braços estirats a sobre del cap",

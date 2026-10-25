@@ -307,6 +307,31 @@ details summary { cursor: pointer; }
 .t-btns .btn { padding: 12px 18px; font-size: 1.05rem; }
 .rest-pill #restTime { cursor: pointer; }
 
+/* ===== Comprovació de tècnica amb la càmera ===== */
+.pose-screen {
+  position: fixed; inset: 0; z-index: 65; background: #000; color: #fff;
+  display: flex; flex-direction: column;
+  padding: calc(10px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+}
+.pose-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pose-feedback {
+  margin: 10px 0 8px; padding: 10px 12px; border-radius: 12px; background: #1a1a19;
+  font-size: clamp(1.1rem, 5vw, 1.6rem); font-weight: 700; text-align: center; line-height: 1.25;
+}
+.pose-feedback.ok { background: #0c4d1f; }
+.pose-feedback.warn { background: #6b3a00; }
+.pose-feedback.bad { background: #6b1a1a; }
+.pose-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.pose-media { position: relative; border-radius: 12px; overflow: hidden; background: #111; }
+.pose-media video, .pose-media canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pose-setup { color: #c3c2b7; font-size: 0.85rem; text-align: center; margin: 8px 0; }
+.pose-bottom { display: flex; align-items: center; gap: 12px; }
+.pose-bottom > .btn { flex: 1; padding: 14px; font-size: 1.05rem; }
+.pose-count { text-align: center; min-width: 72px; }
+.pose-count span { display: block; font-size: 2.6rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.pose-count small { color: #c3c2b7; font-size: 0.75rem; }
+.pose-count.good span { color: #3ecf6e; }
+
 /* ===== Temporitzador de descans ===== */
 .rest-pill {
   position: fixed; z-index: 45;

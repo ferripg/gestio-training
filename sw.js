@@ -2,13 +2,14 @@
    Estratègia "network-first": amb connexió, sempre la versió nova (i s'actualitza el cache);
    sense connexió, la versió guardada. Així els canvis arriben a la PRIMERA obertura. */
 
-const CACHE = 'gestio-training-v4';
+const CACHE = 'gestio-training-v5';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './charts.js',
+  './pose.js',
   './program.js',
   './manifest.webmanifest',
   './icons/icon-192.png',

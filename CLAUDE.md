@@ -15,11 +15,13 @@ PWA d'entrenador personal (programa d'entrenament, dieta, progrés) en HTML + CS
 
 ## Arquitectura
 
-Ordre de càrrega a `index.html` (importa): `program.js` → `charts.js` → `app.js`.
+Ordre de càrrega a `index.html` (importa): `program.js` → `charts.js` → `pose.js` → `app.js`.
 
 - **`program.js`** defineix `window.PROGRAM`: només dades (exercicis amb `kind` `load`/`level`/`time`, sessions A/B a `workouts`, escalfament, refredament, vídeos, fites, dieta amb catàleg d'aliments i `defaultPantry`). Canviar el programa o la dieta = editar aquest fitxer. Camps d'exercici que l'app fa servir per guiar la tècnica: `feel` (on s'ha de notar), `check` (què comprovar en un vídeo propi), `stop` (quan parar), `alt`, `perHand` (pes per manuella). `meta.techWeeks` marca les primeres setmanes del bloc com a setmanes de tècnica (`isTechWeek()` a `app.js`), amb els textos de `PROGRAM.form`.
 - **`charts.js`** defineix `window.Charts = { lineChart, barChart, heatmap, weightChart }`: SVG fet a mà, injecta el seu propi `<style>` i llegeix els colors de les variables CSS de `style.css`.
 - **`app.js`** és un únic IIFE amb tota la lògica, dividit per seccions `/* ========== ... ========== */` (Emmagatzematge, Programa, Pes, Dieta, Navegació, una secció per vista, Entrenament actiu, Ajustos, Inici).
+
+- **`pose.js`** defineix `window.PoseCheck = { open, createTracker }`: comprovació de tècnica amb la càmera. Carrega MediaPipe Tasks Vision (versió fixada, des de jsDelivr, amb `import()` dinàmic) i el model `pose_landmarker_lite` el primer cop; és l'única part que depèn d'internet (el service worker només guarda fitxers del mateix origen). Un exercici en té si porta `pose: "squat" | "hipthrust" | "lateral" | "tricep"` a `program.js`; cada clau és un analitzador a `ANALYZERS` (angle principal, zones de repòs/moviment amb histèresi, `track` i `judge` que retorna els errors en català). `createTracker` no toca el DOM, i per això els analitzadors es poden provar a Node amb punts simulats. MediaPipe pot quedar-se en error (`ROI width and height must be > 0`) i fallar a cada imatge: `restartLandmarker()` el torna a crear. No s'han de passar imatges de mida 0.
 
 ### Dades (localStorage)
 
