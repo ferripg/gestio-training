@@ -56,24 +56,23 @@ window.PROGRAM = {
       alt: "Si costa, fes-lo sense manuella, amb els braços estirats endavant.",
       mistake: "Deixar-se caure al banc o que els genolls es tanquin cap endins."
     },
-    dbpress: {
-      name: "Press de banca amb manuelles", kind: "load", startLoad: 6, step: 2, perHand: true,
-      muscle: "Pit, tríceps", equip: "2 manuelles · banc pla",
+    chestpress: {
+      name: "Press de pit (Unica)", kind: "load", startLoad: 20, step: 5,
+      muscle: "Pit, tríceps", equip: "Unica · nanses de press",
       cues: [
-        "Seu al banc amb les manuelles sobre les cuixes, estira't i porta-les al pit alhora (ajuda't amb els genolls)",
-        "Peus a terra, escàpules juntes i enrere. Baixa en 2 s fins a l'alçada del pit, colzes a uns 45° del cos",
-        "Empeny amunt fins a quasi estirar els braços, sense xocar les manuelles",
-        "Per acabar: manuelles al pit, genolls amunt i seu. No les deixis caure obrint els braços."
+        "Seu amb l'esquena al respatller, nanses a l'alçada del pit",
+        "Empeny endavant fins a estirar els braços (sense bloquejar del tot els colzes)",
+        "Torna a poc a poc (2 s) fins a notar l'estirament al pit"
       ],
       feel: "Pit i tríceps (darrere del braç). No a la part davantera de l'espatlla.",
       check: [
-        "Colzes una mica cap als costats, no en creu",
-        "El cul no s'aixeca del banc",
-        "Baixa igual de lent a les dues bandes"
+        "Esquena enganxada al respatller tota l'estona",
+        "Les espatlles no pugen cap a les orelles",
+        "Tornes a poc a poc, sense deixar caure la placa"
       ],
-      stop: "Molèstia punxant a l'espatlla: baixa menys i acosta els colzes al cos.",
-      alt: "Si l'espatlla molesta: press de pit a la Unica.",
-      mistake: "Obrir els colzes en creu (castiga l'espatlla) o deixar caure les manuelles."
+      stop: "Molèstia punxant a l'espatlla: no tornis tan enrere i treu 5 kg.",
+      alt: "Si la teva Unica no té el press: flexions normals (3×6-12).",
+      mistake: "Aixecar les espatlles cap a les orelles."
     },
     latpull: {
       name: "Jaló al pit (Unica)", kind: "load", startLoad: 20, step: 5,
@@ -186,7 +185,7 @@ window.PROGRAM = {
      Clau = clau d'exercici, o nom exacte de l'ítem d'escalfament/refredament. */
   videos: {
     gobletbox:     [{ id: "ScvZnl8pqO4", title: "Esquat al banc amb manuella (Alba Prieto)" }],
-    dbpress:       [{ id: "QTKX-FKoeFA", title: "Press de banca amb manuelles (Jorge Poduje)" }],
+    chestpress:    [{ id: "qbkrwo9fTiw", title: "Press de pit en màquina (Vitar Club)" }],
     latpull:       [{ id: "TIZbG7Tjbf8", title: "Jaló al pit, tècnica correcta (Javi NewBody)" }],
     inclinerow:    [{ id: "8Q4kzzydoRA", title: "Rem amb manuelles al banc inclinat (Effort Gym)" }],
     lateralraise:  [{ id: "Vh_Kjw3O-DQ", title: "Elevacions laterals, fes-les així (Alberto Mareque)" }],
@@ -203,7 +202,7 @@ window.PROGRAM = {
 
   /* Descans després de cada sèrie (segons), per exercici */
   restSecs: {
-    gobletbox: 90, dbpress: 90, latpull: 90, inclinerow: 90,
+    gobletbox: 90, chestpress: 90, latpull: 90, inclinerow: 90,
     hipthrust: 75, lateralraise: 60, ohtricep: 60, bicep: 60
   },
 
@@ -215,7 +214,7 @@ window.PROGRAM = {
       name: "Sessió A", focus: "Cames, pit, esquena, tríceps",
       items: [
         { ex: "gobletbox", sets: 3, reps: [8, 12] },
-        { ex: "dbpress",   sets: 3, reps: [8, 12] },
+        { ex: "chestpress", sets: 3, reps: [8, 12] },
         { ex: "latpull",   sets: 3, reps: [8, 12] },
         { ex: "hipthrust", sets: 3, reps: [10, 15] },
         { ex: "ohtricep",  sets: 2, reps: [10, 15] }
@@ -278,7 +277,7 @@ window.PROGRAM = {
   milestones: [
     /* gain = kg per sobre del pes inicial del perfil */
     { week: 2,  gain: 1.5, text: "Tècnica apresa: ja saps fer els 5 exercicis sense mirar el clip." },
-    { week: 4,  gain: 2,   text: "Força +20-40%: +4 kg a les manuelles, +10 kg al jaló." },
+    { week: 4,  gain: 2,   text: "Força +20-40%: +4 kg a les manuelles, +10 kg al jaló i al press de pit." },
     { week: 8,  gain: 3.5, text: "Primer canvi visible al mirall: braços i pit més plens, postura més recta." },
     { week: 13, gain: 5,   text: "La gent del teu voltant ho comenta." },
     { week: 26, gain: 7,   text: "Abdominals marcats si el greix es manté baix." },
