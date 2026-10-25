@@ -28,6 +28,7 @@ Ordre de càrrega a `index.html` (importa): `program.js` → `charts.js` → `po
 - `gt-data-v1`: l'objecte `data` sencer. L'esquema és a `defaultData()`. `loadData()` fa de capa de migració: cada camp nou s'ha de posar per defecte allà perquè les dades antigues dels usuaris continuïn funcionant. Qualsevol canvi a `data` va seguit de `saveData()`.
 - `gt-active-v1`: l'entrenament en curs (`draft`), guardat amb `saveDraft()` perquè sobrevisqui si es tanca l'app.
 - **Pujar `PROGRAM.meta.version` esborra `data.program.levels` i `loads`** (pesos i nivells de progressió) i torna el bloc a la setmana 1 (`programStart` = avui, sessió A) en la propera càrrega, i ho desa a l'acte; les sessions es conserven. Fer-ho només quan canvien els exercicis.
+- `data.learned[exKey] = { clean, checks, done }`: aprenentatge per exercici (`learnState`, `onPoseResult`, `CLEAN_SETS`). El resultat de la càmera arriba amb `PoseCheck.open({ onResult, onClose })`.
 - L'usuari només té les seves dades al dispositiu (exportar/importar JSON a Ajustos): no trencar mai la compatibilitat amb dades existents.
 
 ### Patró de renderització

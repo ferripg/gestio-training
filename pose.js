@@ -35,8 +35,6 @@
 
   function mid(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
 
-  function shin(J) { return Math.hypot(J.knee.x - J.ankle.x, J.knee.y - J.ankle.y) || 1; }
-
   function abduction(S) { return angle(S.hip, S.shoulder, S.elbow); }
 
   // Inclinació lateral del tronc (amb signe), per detectar balanceig
@@ -58,25 +56,15 @@
       metric: J => angle(J.hip, J.knee, J.ankle),
       rest: m => m > 155,
       active: m => m < 135,
-      // Talons: si s'aixequen, el turmell puja respecte d'on era dret (els punts del peu tremolen massa).
-      // Es compara amb la canyella de dret: a baix el detector l'escurça. Per sota de 75° no és fiable i no es mira.
-      idle(J, st) {
-        st.ankleBase = st.ankleBase == null ? J.ankle.y : st.ankleBase * 0.9 + J.ankle.y * 0.1;
-        st.shinBase = st.shinBase == null ? shin(J) : st.shinBase * 0.9 + shin(J) * 0.1;
-      },
-      track(J, rep, m, t, st) {
+      // Els talons no es miren: de costat, els punts del peu i del turmell no són prou estables i donaven avisos falsos
+      track(J, rep, m, t) {
         if (m < (rep.min ?? 999)) { rep.min = m; rep.tMin = t; }
         rep.lean = Math.max(rep.lean || 0, tilt(J.hip, J.shoulder));
-        if (m < 75 || st.ankleBase == null) return;
-        const rise = (st.ankleBase - J.ankle.y) / st.shinBase;
-        rep.rise = rep.rise == null ? rise : rep.rise * 0.7 + rise * 0.3;
-        rep.heel = Math.max(rep.heel || 0, rep.rise);
       },
       judge(rep) {
         const f = [];
         if (rep.min > 110) f.push("Baixa més, fins a tocar el banc");
         if (rep.lean > 50) f.push("Pit amunt, no t'inclinis tant");
-        if (rep.heel > 0.15) f.push("Talons a terra");
         if (rep.tMin - rep.t0 < 0.7) f.push("Baixa més a poc a poc");
         return f;
       }
@@ -247,7 +235,7 @@
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  // opts = { type, name, onSave(reps), saveLabel }
+  // opts = { type, name, onSave(reps), saveLabel, onResult(resum) → text per al resum, onClose }
   function open(opts) {
     const an = ANALYZERS[opts.type];
     if (!an) return;
@@ -429,9 +417,11 @@
     const s = ui.tracker.summary();
     stopCamera();
     const canSave = ui.opts.onSave && s.reps > 0;
+    const note = ui.opts.onResult ? ui.opts.onResult(s) : '';
     feedback(s.reps ? `${s.reps} reps · ${s.good} ben fetes` : 'No he comptat cap repetició.', s.reps && s.good === s.reps ? 'ok' : '');
     $('#pBottom').innerHTML = `<div class="stack" style="width:100%;margin:0">
       ${s.topFault ? `<p>Per millorar: <b>${esc(s.topFault)}</b></p>` : (s.reps ? '<p>Totes ben fetes. Així s\'hi fa 💪</p>' : '')}
+      ${note ? `<p><b>${esc(note)}</b></p>` : ''}
       ${canSave ? `<button class="btn primary" id="pSave">✓ Apunta ${s.reps} reps ${esc(ui.opts.saveLabel || '')}</button>` : ''}
       <button class="btn" id="pClose2">Tancar</button>
     </div>`;
@@ -444,10 +434,12 @@
     if (ui && ui.wakeLock) ui.wakeLock.release().catch(() => {});
     if (window.speechSynthesis) speechSynthesis.cancel();
     window.removeEventListener('resize', fitMedia);
+    const onClose = ui && ui.opts.onClose;
     ui = null;
     const o = $('#overlay-pose');
     o.classList.add('hidden');
     o.innerHTML = '';
+    if (onClose) onClose();
   }
 
   window.PoseCheck = { open, createTracker, types: Object.keys(ANALYZERS) };

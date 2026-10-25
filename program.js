@@ -25,7 +25,8 @@ window.PROGRAM = {
       "Lent i controlat: 2 s per baixar. Si has de fer impuls o tirar amb el cos, sobra pes.",
       "Grava't de costat amb el mòbil (1 sèrie per exercici) i compara amb el clip i la llista ✔ de la fitxa ⓘ.",
       "Dolor bo: cremor al múscul i agulletes 1-2 dies. Dolor dolent: punxada a una articulació o a l'esquena → para aquell exercici.",
-      "Has de notar-ho al múscul que diu la fitxa. Si ho notes a un altre lloc (lumbar, coll, genoll), treu pes i revisa la tècnica."
+      "Has de notar-ho al múscul que diu la fitxa. Si ho notes a un altre lloc (lumbar, coll, genoll), treu pes i revisa la tècnica.",
+      "Aprèn cada exercici fins que sigui ✅: amb el 📷, 2 sèries netes; sense càmera, grava't i marca la llista ✔ de la fitxa ⓘ. Quan tots siguin ✅, ja ho saps fer."
     ]
   },
 

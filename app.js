@@ -36,7 +36,8 @@
       shopping: {},   // { item: bool }
       pantry: P.diet.defaultPantry.slice(),  // ids d'aliments que l'usuari té/menja
       customFoods: {},                       // { id: { name, portion, kcal, prot, ... } } productes propis o valors editats
-      combos: []                             // àpats habituals apresos: { id, name, items: [[food, qty]], count }
+      combos: [],                            // àpats habituals apresos: { id, name, items: [[food, qty]], count }
+      learned: {}                            // exercicis apresos: { exKey: { clean, checks: [bool], done } }
     };
   }
 
@@ -72,6 +73,7 @@
       d.pantry = Array.isArray(d.pantry) ? d.pantry : P.diet.defaultPantry.slice();
       d.customFoods = d.customFoods || {};
       d.combos = Array.isArray(d.combos) ? d.combos : [];
+      d.learned = d.learned || {};
       d.version = 3;
       // Desa el canvi de programa ara: si no, el bloc tornaria a la setmana 1 a cada obertura fins al primer desat
       if (storedPv !== P.meta.version) localStorage.setItem(STORE_KEY, JSON.stringify(d));
@@ -266,11 +268,64 @@
     return `${kg} kg${ex.perHand ? '/mà' : ''}`;
   }
 
-  // On l'has de notar · què comprovar al vídeo de tu mateix · quan parar
-  function formHtml(ex) {
+  // On l'has de notar · què comprovar al vídeo de tu mateix (es pot marcar) · quan parar
+  function formHtml(ex, key) {
+    const checks = learnState(key).checks;
     return `${ex.feel ? `<p style="margin-top:10px"><b>🎯 Has de notar-ho a:</b> <span class="muted">${esc(ex.feel)}</span></p>` : ''}
-      ${ex.check ? `<p style="margin:8px 0 2px"><b>✔ Grava't de costat i comprova:</b></p>` + ex.check.map(c => `<div class="ex-line">☐ ${esc(c)}</div>`).join('') : ''}
+      ${ex.check ? `<p style="margin:8px 0 2px"><b>✔ Grava't de costat i comprova:</b> <span class="muted">(toca cada punt quan el vegis bé al vídeo)</span></p>` +
+        ex.check.map((c, i) => `<div class="ex-line" data-check="${i}" style="cursor:pointer">${checks[i] ? '✅' : '☐'} ${esc(c)}</div>`).join('') : ''}
       ${ex.stop ? `<p style="margin-top:8px"><b>✋ Para si:</b> <span class="muted">${esc(ex.stop)}</span></p>` : ''}`;
+  }
+
+  /* ========== Aprenentatge: quins exercicis ja saps fer bé ==========
+     Amb càmera: CLEAN_SETS sèries netes. Sense càmera: tots els punts de la llista ✔ marcats. */
+
+  const CLEAN_SETS = 2;
+
+  function learnState(key) {
+    const l = data.learned[key] || {};
+    return { done: !!l.done, clean: l.clean || 0, checks: l.checks || [] };
+  }
+
+  function setLearned(key, patch) {
+    data.learned[key] = Object.assign(learnState(key), patch);
+    saveData();
+  }
+
+  function programKeys() {
+    return [...new Set(['A', 'B'].flatMap(k => P.workouts[k].items.map(it => it.ex)))];
+  }
+
+  function learnedCount(keys) {
+    keys = keys || programKeys();
+    return { n: keys.filter(k => learnState(k).done).length, total: keys.length };
+  }
+
+  function learnBadge(key) {
+    return learnState(key).done ? '✅' : '📚';
+  }
+
+  function learnHint(ex, key) {
+    const s = learnState(key);
+    if (s.done) return '✅ <b>Après.</b> Ja el saps fer bé.';
+    return hasPose(ex)
+      ? `📚 <b>Per aprendre:</b> ${s.clean}/${CLEAN_SETS} sèries netes amb la càmera (6 reps o més, com a molt 1 errada).`
+      : '📚 <b>Per aprendre:</b> grava\'t una sèrie i marca els punts de la llista ✔ quan els vegis bé.';
+  }
+
+  // Resultat d'una sèrie amb la càmera → text per a la pantalla de resum
+  function onPoseResult(key, s) {
+    if (learnState(key).done) return s.reps ? '✅ Aquest exercici ja el tens après.' : '';
+    if (s.reps < 6 || s.good < s.reps - 1) return s.reps ? `Per comptar com a sèrie neta calen 6 reps o més amb com a molt 1 errada.` : '';
+    const clean = learnState(key).clean + 1;
+    setLearned(key, { clean, done: clean >= CLEAN_SETS });
+    return clean >= CLEAN_SETS ? '🏆 Exercici après! Ja el saps fer bé.' : `Sèrie neta! ${clean}/${CLEAN_SETS} per donar-lo per après.`;
+  }
+
+  // Quan canvia l'aprenentatge, refresca el que hi hagi a la vista (insígnies ✅)
+  function afterLearn() {
+    render();
+    if (draft && !$('#overlay-workout').classList.contains('hidden')) renderWorkout();
   }
 
   function exState(key) {
@@ -573,11 +628,14 @@
           <div class="spread"><h2>🏋️ ${esc(wk.name)}</h2><span class="muted">~${P.meta.sessionMinutes} min</span></div>
           <p class="muted" style="margin-bottom:8px">${esc(wk.focus)}</p>
           ${isTechWeek() ? `<p style="margin-bottom:8px">🛡️ ${esc(P.form.techBanner)}</p>` : ''}
+          ${(lc => lc.n === lc.total
+            ? `<p style="margin-bottom:8px">🏆 Ja saps fer bé tots els exercicis. Ara toca anar pujant.</p>`
+            : `<p style="margin-bottom:8px">📚 Exercicis apresos: <b>${lc.n}/${lc.total}</b> · els 📚 aprèn-los amb el 📷 o la llista ✔ de la fitxa ⓘ</p>`)(learnedCount())}
           ${wk.items.map(it => {
             const ex = P.exercises[it.ex];
             const s = exState(it.ex);
             const sub = ex.kind === 'level' ? s.levelName : targetLabel(it);
-            return `<div class="ex-line">• <b>${esc(ex.name)}</b> <span class="muted">${esc(ex.kind === 'level' ? targetLabel(it) + ' · ' + sub : sub)}</span></div>`;
+            return `<div class="ex-line">${learnBadge(it.ex)} <b>${esc(ex.name)}</b> <span class="muted">${esc(ex.kind === 'level' ? targetLabel(it) + ' · ' + sub : sub)}</span></div>`;
           }).join('')}
           <div class="row" style="margin-top:12px">
             <button class="btn" id="btnReview" style="flex:1">🎬 Repàs (3 min)</button>
@@ -742,15 +800,17 @@
 
     for (const key of ['A', 'B']) {
       const wk = P.workouts[key];
+      const lc = learnedCount(wk.items.map(it => it.ex));
       html += `<div class="card">
-        <div class="spread"><h2>${esc(wk.name)}</h2><span class="muted">${esc(wk.focus)}</span></div>
+        <div class="spread"><h2>${esc(wk.name)}</h2><span class="chip">${lc.n === lc.total ? '🏆 Dominada' : `Apresos ${lc.n}/${lc.total}`}</span></div>
+        <p class="muted">${esc(wk.focus)}</p>
         ${wk.items.map(it => {
           const ex = P.exercises[it.ex];
           const s = exState(it.ex);
           const last = lastEntryByKey(it.ex);
           return `<div class="ex-row" data-exinfo="${it.ex}">
             <div class="grow">
-              <div><b>${esc(ex.name)}</b> <span class="muted">${esc(targetLabel(it))}</span></div>
+              <div>${learnBadge(it.ex)} <b>${esc(ex.name)}</b> <span class="muted">${esc(targetLabel(it))}</span></div>
               ${ex.kind === 'level' ? `<div class="muted" style="font-size:0.78rem">Nivell ${s.level + 1}/${ex.levels.length}: ${esc(s.levelName)}</div>` : ''}
               ${last ? `<div class="muted" style="font-size:0.78rem">Últim cop: ${esc(perfLabel(last))}</div>` : ''}
             </div>
@@ -827,20 +887,38 @@
     showInfoModal(`
       <h2>${esc(ex.name)}</h2>
       <p class="muted">${esc(ex.muscle)} · ${esc(ex.equip)}</p>
+      <div class="card" style="margin:8px 0;padding:10px 12px"><span id="learnHint">${learnHint(ex, key)}</span>
+        ${learnState(key).done ? ' <button class="btn tiny" id="btnUnlearn">Tornar a practicar</button>' : ''}</div>
       ${vids.map(videoEmbedHtml).join('')}
       ${hasPose(ex) ? `<button class="btn full" id="btnPoseInfo" style="margin:4px 0 8px">📷 Comprova la tècnica amb la càmera</button>` : ''}
       ${vids.length ? '' : `<a class="btn" href="${esc(ex.video)}" target="_blank" rel="noopener" style="margin:8px 0">▶️ Veure vídeos de la tècnica</a>`}
       <p style="margin:10px 0">${state}</p>
       <h3 style="margin-bottom:4px">Tècnica</h3>
       ${ex.cues.map((c, i) => `<div class="ex-line">${i + 1}. ${esc(c)}</div>`).join('')}
-      ${formHtml(ex)}
+      ${formHtml(ex, key)}
       <p style="margin-top:10px"><b>Error habitual:</b> <span class="muted">${esc(ex.mistake)}</span></p>
       ${ex.alt ? `<p style="margin-top:6px"><b>Si no pots:</b> <span class="muted">${esc(ex.alt)}</span></p>` : ''}
       ${ex.levels ? `<h3 style="margin:10px 0 4px">Nivells</h3>` + ex.levels.map((l, i) => `<div class="ex-line ${i === s.level ? '' : 'muted'}">${i === s.level ? '▶' : '○'} ${esc(l)}</div>`).join('') : ''}`);
     if ($('#btnPoseInfo')) $('#btnPoseInfo').onclick = () => {
       $('#modal-exercise').classList.add('hidden');
       $('#modal-exercise .modal').innerHTML = '';
-      window.PoseCheck.open({ type: ex.pose, name: ex.name });
+      window.PoseCheck.open({ type: ex.pose, name: ex.name, onResult: s => onPoseResult(key, s), onClose: afterLearn });
+    };
+    // Llista ✔: es marca al lloc (sense redibuixar el modal, que recarregaria el vídeo)
+    document.querySelectorAll('#modal-exercise [data-check]').forEach(el => el.onclick = () => {
+      const i = Number(el.dataset.check);
+      const checks = learnState(key).checks.slice();
+      checks[i] = !checks[i];
+      const all = ex.check.every((c, j) => checks[j]);
+      setLearned(key, all && !learnState(key).done ? { checks, done: true } : { checks });
+      el.textContent = `${checks[i] ? '✅' : '☐'} ${ex.check[i]}`;
+      $('#learnHint').innerHTML = learnHint(ex, key);
+      afterLearn();
+    });
+    if ($('#btnUnlearn')) $('#btnUnlearn').onclick = () => {
+      setLearned(key, { done: false, clean: 0, checks: [] });
+      afterLearn();
+      showExerciseInfo(key);
     };
   }
 
@@ -1782,7 +1860,7 @@
       const prevTxt = prev ? perfLabel(prev) : '';
       html += `<div class="card">
         <div class="spread" style="margin-bottom:4px">
-          <h3>${esc(e.name)}${e.exKey ? ` <span class="info-btn" data-info="${e.exKey}">ⓘ</span>` : ''}${hasPose(P.exercises[e.exKey]) ? ` <span class="info-btn" data-pose="${i}" title="Comprova la tècnica amb la càmera">📷</span>` : ''}</h3>
+          <h3>${e.exKey && P.exercises[e.exKey] ? learnBadge(e.exKey) + ' ' : ''}${esc(e.name)}${e.exKey ? ` <span class="info-btn" data-info="${e.exKey}">ⓘ</span>` : ''}${hasPose(P.exercises[e.exKey]) ? ` <span class="info-btn" data-pose="${i}" title="Comprova la tècnica amb la càmera">📷</span>` : ''}</h3>
           <div class="row">
             <span class="chip ${e.mode === 'cardio' ? 'cardio' : ''}">${e.mode === 'cardio' ? 'Cardio' : e.timed ? 'Temps' : 'Força'}</span>
             <button class="btn small danger" data-rmex="${i}">✕</button>
@@ -1870,6 +1948,7 @@
       const j = e.sets.findIndex(st => !st.done);
       window.PoseCheck.open({
         type: P.exercises[e.exKey].pose, name: e.name,
+        onResult: s => onPoseResult(e.exKey, s), onClose: afterLearn,
         saveLabel: j >= 0 ? `a la sèrie ${j + 1}` : '',
         onSave: j < 0 ? null : reps => {
           if (!draft || !draft.entries[i]) return;
