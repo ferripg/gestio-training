@@ -59,10 +59,13 @@
       d.diet = d.diet || {};
       const storedPv = d.program ? d.program.pv : undefined;
       d.program = Object.assign(def.program, d.program || {});
-      // Programa nou (exercicis diferents) → pesos i nivells de zero; les sessions es conserven
+      // Programa nou (exercicis diferents) → pesos i nivells de zero i bloc des de la setmana 1; les sessions es conserven
       if (storedPv !== P.meta.version) {
         d.program.levels = {};
         d.program.loads = {};
+        d.program.nextWorkout = 'A';
+        d.program.lastSummary = null;
+        d.profile.programStart = todayISO();
         d.program.pv = P.meta.version;
       }
       d.shopping = d.shopping || {};
@@ -70,6 +73,8 @@
       d.customFoods = d.customFoods || {};
       d.combos = Array.isArray(d.combos) ? d.combos : [];
       d.version = 3;
+      // Desa el canvi de programa ara: si no, el bloc tornaria a la setmana 1 a cada obertura fins al primer desat
+      if (storedPv !== P.meta.version) localStorage.setItem(STORE_KEY, JSON.stringify(d));
       return d;
     } catch (e) {
       console.error('Error carregant dades', e);
@@ -252,6 +257,22 @@
     return programWeek() % P.meta.blockWeeks === 0;
   }
 
+  // Primeres setmanes del bloc: pes lleuger i prioritat a aprendre la tècnica
+  function isTechWeek() {
+    return programWeek() <= (P.meta.techWeeks || 0);
+  }
+
+  function loadLabel(ex, kg) {
+    return `${kg} kg${ex.perHand ? '/mà' : ''}`;
+  }
+
+  // On l'has de notar · què comprovar al vídeo de tu mateix · quan parar
+  function formHtml(ex) {
+    return `${ex.feel ? `<p style="margin-top:10px"><b>🎯 Has de notar-ho a:</b> <span class="muted">${esc(ex.feel)}</span></p>` : ''}
+      ${ex.check ? `<p style="margin:8px 0 2px"><b>✔ Grava't de costat i comprova:</b></p>` + ex.check.map(c => `<div class="ex-line">☐ ${esc(c)}</div>`).join('') : ''}
+      ${ex.stop ? `<p style="margin-top:8px"><b>✋ Para si:</b> <span class="muted">${esc(ex.stop)}</span></p>` : ''}`;
+  }
+
   function exState(key) {
     const ex = P.exercises[key];
     const st = data.program;
@@ -269,7 +290,7 @@
     const ex = P.exercises[item.ex];
     const s = exState(item.ex);
     const sets = itemSets(item);
-    if (ex.kind === 'load') return `${sets}×${item.reps[0]}-${item.reps[1]} · ${s.load} kg`;
+    if (ex.kind === 'load') return `${sets}×${item.reps[0]}-${item.reps[1]} · ${loadLabel(ex, s.load)}`;
     if (ex.kind === 'time') return `${sets}×${s.secs} s`;
     return `${sets}×${item.reps[0]}-${item.reps[1]}${ex.unit ? ' ' + ex.unit : ''}`;
   }
@@ -551,6 +572,7 @@
         html += `<div class="card" style="border-color: var(--accent)">
           <div class="spread"><h2>🏋️ ${esc(wk.name)}</h2><span class="muted">~${P.meta.sessionMinutes} min</span></div>
           <p class="muted" style="margin-bottom:8px">${esc(wk.focus)}</p>
+          ${isTechWeek() ? `<p style="margin-bottom:8px">🛡️ ${esc(P.form.techBanner)}</p>` : ''}
           ${wk.items.map(it => {
             const ex = P.exercises[it.ex];
             const s = exState(it.ex);
@@ -712,6 +734,12 @@
       <p class="muted" style="margin-top:10px">Propera sessió: <b>${data.program.nextWorkout}</b>${isDeload() ? ' · Setmana de descàrrega: una sèrie menys a tot.' : ''}</p>
     </div>`;
 
+    html += `<div class="card" ${isTechWeek() ? 'style="border-color: var(--accent)"' : ''}>
+      <details ${isTechWeek() ? 'open' : ''}><summary><b>${esc(P.form.title)}</b></summary>
+        ${P.form.rules.map(r => `<div class="ex-line">• ${esc(r)}</div>`).join('')}
+      </details>
+    </div>`;
+
     for (const key of ['A', 'B']) {
       const wk = P.workouts[key];
       html += `<div class="card">
@@ -792,7 +820,7 @@
     const ex = P.exercises[key];
     const s = exState(key);
     let state = '';
-    if (ex.kind === 'load') state = `Pes actual: <b>${s.load} kg</b> (+${ex.step} kg quan totes les sèries arribin al màxim)`;
+    if (ex.kind === 'load') state = `Pes actual: <b>${s.load} kg${ex.perHand ? ' a cada mà' : ''}</b> (+${ex.step} kg quan totes les sèries arribin al màxim)`;
     else if (ex.kind === 'time') state = `Objectiu actual: <b>${s.secs} s</b> per sèrie`;
     else state = `Nivell actual <b>${s.level + 1} de ${ex.levels.length}</b>: ${esc(s.levelName)}`;
     const vids = videosFor(key);
@@ -804,6 +832,7 @@
       <p style="margin:10px 0">${state}</p>
       <h3 style="margin-bottom:4px">Tècnica</h3>
       ${ex.cues.map((c, i) => `<div class="ex-line">${i + 1}. ${esc(c)}</div>`).join('')}
+      ${formHtml(ex)}
       <p style="margin-top:10px"><b>Error habitual:</b> <span class="muted">${esc(ex.mistake)}</span></p>
       ${ex.alt ? `<p style="margin-top:6px"><b>Si no pots:</b> <span class="muted">${esc(ex.alt)}</span></p>` : ''}
       ${ex.levels ? `<h3 style="margin:10px 0 4px">Nivells</h3>` + ex.levels.map((l, i) => `<div class="ex-line ${i === s.level ? '' : 'muted'}">${i === s.level ? '▶' : '○'} ${esc(l)}</div>`).join('') : ''}`);
@@ -815,7 +844,8 @@
     const o = $('#overlay-review');
     let html = `<div class="sheet">
       <div class="spread"><h2 style="font-size:1.15rem">Repàs · ${esc(wk.name)}</h2><span class="muted">~3 min</span></div>
-      <p class="muted">Mira cada clip un cop. Durant la sessió només tindràs les 3 claus.</p>`;
+      <p class="muted">Mira cada clip un cop. Durant la sessió només tindràs les 3 claus.</p>
+      ${isTechWeek() ? `<div class="card" style="border-color: var(--accent)"><b>🛡️ ${esc(P.form.techBanner)}</b></div>` : ''}`;
     wk.items.forEach((it, i) => {
       const ex = P.exercises[it.ex];
       const s = exState(it.ex);
@@ -825,6 +855,8 @@
         ${ex.kind === 'level' ? `<p class="muted" style="font-size:0.8rem">${esc(s.levelName)}</p>` : ''}
         ${vids.slice(0, 1).map(videoEmbedHtml).join('')}
         ${ex.cues.slice(0, 3).map(c => `<div class="ex-line">• ${esc(c)}</div>`).join('')}
+        ${ex.feel ? `<p style="font-size:0.85rem;margin-top:6px">🎯 <b>Has de notar-ho a:</b> <span class="muted">${esc(ex.feel)}</span></p>` : ''}
+        ${ex.stop ? `<p style="font-size:0.85rem;margin-top:2px">✋ <b>Para si:</b> <span class="muted">${esc(ex.stop)}</span></p>` : ''}
         ${ex.alt ? `<p class="muted" style="font-size:0.78rem;margin-top:4px">Si no pots: ${esc(ex.alt)}</p>` : ''}
       </div>`;
     });
@@ -1727,7 +1759,8 @@
     let html = `<div class="sheet">
       <div class="spread"><h2 style="font-size:1.15rem">${esc(draft.routineName || 'Entrenament lliure')}</h2>
         <span class="row" style="gap:6px"><span class="timer" id="wTimer">0:00</span><button class="btn tiny" id="btnPauseSession" title="Pausar el cronòmetre">${draft.pausedAt ? '▶' : '⏸'}</button></span></div>
-      <p class="muted">${fmtDate(draft.date)}${draft.program && isDeload() ? ' · setmana de descàrrega' : ''}</p>`;
+      <p class="muted">${fmtDate(draft.date)}${draft.program && isDeload() ? ' · setmana de descàrrega' : ''}</p>
+      ${draft.program && isTechWeek() ? `<div class="card" style="border-color: var(--accent)">🛡️ ${esc(P.form.techBanner)}</div>` : ''}`;
 
     if (draft.warmup) {
       html += `<div class="card"><h3 style="margin-bottom:6px">🔥 Escalfament</h3>${checklistHtml(P.warmup, draft.warmup, 'wu')}</div>`;
@@ -1745,6 +1778,7 @@
           </div>
         </div>
         ${e.variant ? `<p class="muted" style="font-size:0.8rem">${esc(e.variant)}</p>` : ''}
+        ${e.exKey && P.exercises[e.exKey] && P.exercises[e.exKey].feel ? `<p class="muted" style="font-size:0.8rem">Has de notar-ho a: ${esc(P.exercises[e.exKey].feel)}</p>` : ''}
         ${e.target ? `<p class="target-line">🎯 ${esc(e.target)}${e.rest ? ` · descans ${e.rest} s` : ''}${prevTxt ? ` <span class="muted">· últim cop: ${esc(prevTxt)}</span>` : ''}</p>`
           : (prevTxt ? `<p class="muted" style="font-size:0.78rem;margin-bottom:6px">Últim cop: ${esc(prevTxt)}</p>` : '')}`;
 
@@ -1879,7 +1913,7 @@
       if (!ok) continue;
       if (ex.kind === 'load') {
         data.program.loads[item.ex] = st.load + ex.step;
-        lines.push(`${ex.name}: ${st.load} → ${st.load + ex.step} kg`);
+        lines.push(`${ex.name}: ${st.load} → ${loadLabel(ex, st.load + ex.step)}`);
       } else if (ex.kind === 'time') {
         if (st.secs < 60) { data.program.loads[item.ex] = st.secs + ex.step; lines.push(`${ex.name}: ${st.secs} → ${st.secs + ex.step} s`); }
       } else if (st.level < ex.levels.length - 1) {

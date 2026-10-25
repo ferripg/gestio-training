@@ -1,39 +1,78 @@
 /* program.js — Contingut del programa personalitzat (entrenament + dieta).
    Dissenyat per a: home, 22 anys, 179 cm, 58 kg, hardgainer, principiant,
-   3 dies/setmana de 30-45 min. Material: Technogym Unica (jaló, pec deck, extensió de cames,
-   coixí de bíceps, politja baixa amb nansa, press de pit), cinta, rem, KB 12 kg, manuelles 2/8 kg.
-   Versió 2 (22/09/2026): màquina primer, moviments simples, clips curts. Tot és dades. */
+   3 dies/setmana de 30-45 min. Material a casa: manuelles ajustables (fins a ~20 kg), banc inclinable,
+   Technogym Unica (jaló, coixí de bíceps, politja baixa...), cinta, rem, KB 12 kg.
+   Versió 3 (25/10/2026): manuelles + banc, 5 exercicis per sessió, esquat i hip thrust a totes dues
+   sessions per aprendre'ls abans, i a cada exercici: on l'has de notar, què comprovar i quan parar. Tot és dades. */
 
 window.PROGRAM = {
   meta: {
-    name: "Programa Hardgainer",
-    subtitle: "Full-body 3 dies · sessions A/B alternades · bloc de 8 setmanes",
-    version: 2,
+    name: "Programa Casa",
+    subtitle: "Full-body 3 dies · sessions A/B · 5 exercicis · manuelles, banc i Unica",
+    version: 3,
     blockWeeks: 8,
+    techWeeks: 2,
     sessionMinutes: 35
   },
 
+  /* ---------- Fer-ho bé ----------
+     Es mostra a Programa, al Repàs i durant les setmanes de tècnica */
+  form: {
+    title: "🛡️ Fer-ho bé i sense lesions",
+    techBanner: "Setmana de tècnica: pes lleuger expressament. Lent, bonic, i acaba cada sèrie podent-ne fer 3 més.",
+    rules: [
+      "Setmanes 1-2 = tècnica. El pes de partida és lleuger a propòsit: acaba cada sèrie podent-ne fer 3 més.",
+      "Lent i controlat: 2 s per baixar. Si has de fer impuls o tirar amb el cos, sobra pes.",
+      "Grava't de costat amb el mòbil (1 sèrie per exercici) i compara amb el clip i la llista ✔ de la fitxa ⓘ.",
+      "Dolor bo: cremor al múscul i agulletes 1-2 dies. Dolor dolent: punxada a una articulació o a l'esquena → para aquell exercici.",
+      "Has de notar-ho al múscul que diu la fitxa. Si ho notes a un altre lloc (lumbar, coll, genoll), treu pes i revisa la tècnica."
+    ]
+  },
+
   /* ---------- Exercicis ----------
-     kind: "load"  → progressa amb la placa de la Unica (+step kg quan totes les sèries arriben al màxim)
+     kind: "load"  → progressa amb pes (+step kg quan totes les sèries arriben al màxim)
+                     perHand: el pes és el de CADA manuella
            "level" → progressa canviant a la següent variant de la llista levels
            "time"  → progressa afegint segons (planxa)
+     feel: on l'has de notar · check: què mirar al vídeo de tu mateix · stop: quan parar o canviar
      alt: què fer si no pots fer l'exercici tal com és */
   exercises: {
-    pushup: {
-      name: "Flexions", kind: "level",
-      muscle: "Pit, tríceps, espatlla", equip: "Terra",
-      levels: [
-        "Flexions normals a terra",
-        "Flexions amb els peus sobre el sofà",
-        "Flexions amb una motxilla amb pes"
-      ],
+    gobletbox: {
+      name: "Esquat al banc amb manuella", kind: "load", startLoad: 8, step: 2,
+      muscle: "Cames i glutis", equip: "1 manuella · banc pla darrere teu",
       cues: [
-        "Mans una mica més amples que les espatlles, cos recte com una taula",
-        "Baixa fins que el pit quasi toqui el terra, colzes cap enrere (no oberts)",
-        "Puja empenyent fort; el cul no puja ni baixa"
+        "Banc pla darrere teu. Aguanta una manuella vertical contra el pit, amb les dues mans sota el disc de dalt",
+        "Peus una mica més amples que les espatlles. Baixa enviant el cul enrere fins a tocar el banc suaument",
+        "Puja empenyent amb tot el peu, pit amunt i genolls en la direcció de les puntes"
       ],
-      alt: "Si no arribes a 6, fes-les amb les mans sobre el seient de la Unica (més fàcil).",
-      mistake: "Enfonsar el maluc o mirar amunt."
+      feel: "Cuixes (davant) i cul. No a la lumbar ni a dins del genoll.",
+      check: [
+        "Talons a terra tota l'estona",
+        "Genolls cap a les puntes dels peus, no cap endins",
+        "El pit no cau endavant: la manuella queda enganxada al pit"
+      ],
+      stop: "Punxada al genoll o a l'esquena: treu pes o baixa una mica menys.",
+      alt: "Si costa, fes-lo sense manuella, amb els braços estirats endavant.",
+      mistake: "Deixar-se caure al banc o que els genolls es tanquin cap endins."
+    },
+    dbpress: {
+      name: "Press de banca amb manuelles", kind: "load", startLoad: 6, step: 2, perHand: true,
+      muscle: "Pit, tríceps", equip: "2 manuelles · banc pla",
+      cues: [
+        "Seu al banc amb les manuelles sobre les cuixes, estira't i porta-les al pit alhora (ajuda't amb els genolls)",
+        "Peus a terra, escàpules juntes i enrere. Baixa en 2 s fins a l'alçada del pit, colzes a uns 45° del cos",
+        "Empeny amunt fins a quasi estirar els braços, sense xocar les manuelles",
+        "Per acabar: manuelles al pit, genolls amunt i seu. No les deixis caure obrint els braços."
+      ],
+      feel: "Pit i tríceps (darrere del braç). No a la part davantera de l'espatlla.",
+      check: [
+        "Colzes una mica cap als costats, no en creu",
+        "El cul no s'aixeca del banc",
+        "Baixa igual de lent a les dues bandes"
+      ],
+      stop: "Molèstia punxant a l'espatlla: baixa menys i acosta els colzes al cos.",
+      alt: "Si l'espatlla molesta: press de pit a la Unica.",
+      mistake: "Obrir els colzes en creu (castiga l'espatlla) o deixar caure les manuelles."
     },
     latpull: {
       name: "Jaló al pit (Unica)", kind: "load", startLoad: 20, step: 5,
@@ -43,27 +82,68 @@ window.PROGRAM = {
         "Estira la barra fins a la part alta del pit, colzes cap avall i enrere",
         "Torna a dalt a poc a poc (2 s), sense deixar caure la placa"
       ],
+      feel: "Esquena (sota les aixelles) i bíceps.",
+      check: [
+        "Et tires enrere només una mica, no et balances",
+        "La barra arriba a la part alta del pit, mai darrere el cap",
+        "Les espatlles baixen, no pugen cap a les orelles"
+      ],
+      stop: "Dolor a l'espatlla o al coll: treu 5 kg.",
       mistake: "Tirar-se enrere i fer-ho amb el cos. Si has d'oscil·lar, treu 5 kg."
     },
-    legext: {
-      name: "Extensió de cames (Unica)", kind: "load", startLoad: 20, step: 5,
-      muscle: "Quàdriceps (cuixa davant)", equip: "Unica · coixí als turmells",
+    inclinerow: {
+      name: "Rem al banc inclinat", kind: "load", startLoad: 6, step: 2, perHand: true,
+      muscle: "Esquena mitjana — POSTURA", equip: "2 manuelles · banc inclinat (~30-45°)",
       cues: [
-        "Seu amb l'esquena al respatller, el coixí just sobre els turmells",
-        "Estira les cames fins a quedar rectes, aguanta 1 s a dalt",
-        "Baixa a poc a poc (2 s), sense deixar caure el pes"
+        "Inclina el banc. Estira't de panxa amb el pit al respatller i els peus a terra, manuelles penjant",
+        "Porta els colzes enrere i a prop del cos, cap a la cintura, i apreta les escàpules 1 s",
+        "Baixa a poc a poc fins a estirar els braços. El pit no es desenganxa del banc"
       ],
-      mistake: "Fer-ho amb impuls o deixar caure el pes."
+      feel: "Entre les escàpules i darrere de l'espatlla. La lumbar descansa.",
+      check: [
+        "El pit sempre enganxat al banc",
+        "Les espatlles no pugen cap a les orelles",
+        "A dalt, els colzes arriben a l'altura de l'esquena"
+      ],
+      stop: "Coll tens: mira al terra i treu pes.",
+      alt: "Si el banc no s'inclina: rem a la politja baixa de la Unica.",
+      mistake: "Aixecar el pit del banc per fer força amb l'esquena o el coll."
     },
-    pecdeck: {
-      name: "Obrir i tancar braços (Unica)", kind: "load", startLoad: 15, step: 5,
-      muscle: "Pit", equip: "Unica · pec deck",
+    lateralraise: {
+      name: "Elevacions laterals", kind: "load", startLoad: 3, step: 1, perHand: true,
+      muscle: "Espatlla (costat) — és el que fa l'esquena més ampla", equip: "2 manuelles lleugeres",
       cues: [
-        "Seu recte, esquena al respatller, braços als coixins o nanses a l'alçada del pit",
-        "Tanca els braços al davant fins que quasi es toquin, apretant el pit 1 s",
-        "Obre a poc a poc fins a notar l'estirament al pit, sense passar-te"
+        "Dret o assegut a la vora del banc, manuelles als costats, colzes una mica doblats i fixos",
+        "Puja els braços cap als costats fins a l'altura de les espatlles, com si empenyessis les parets amb els colzes",
+        "Baixa a poc a poc (2-3 s). El pes és petit: l'important és que no balancegis"
       ],
-      mistake: "Obrir massa (dolor a l'espatlla) o tancar amb impuls."
+      feel: "A la part del costat de l'espatlla. No al coll ni a dalt de les espatlles.",
+      check: [
+        "No balancejes el cos per pujar",
+        "Les espatlles no pugen cap a les orelles",
+        "Les mans no passen de l'altura de les espatlles"
+      ],
+      stop: "Pessigada a l'espatlla: puja una mica menys i porta les manuelles una mica per davant del cos.",
+      alt: "Si 3 kg és massa: fes-ho amb la barra de la manuella sense discos.",
+      mistake: "Fer-ho amb massa pes i impuls: llavors treballa el coll, no l'espatlla."
+    },
+    hipthrust: {
+      name: "Hip thrust al banc", kind: "load", startLoad: 8, step: 2,
+      muscle: "Glutis — clau per a l'esquena i la pelvis", equip: "Banc pla · 1 manuella · tovallola",
+      cues: [
+        "Seu a terra amb la part de sota de les escàpules contra el lateral del banc. Manuella sobre el maluc, amb una tovallola",
+        "Peus a l'amplada del maluc. Empeny amb els talons fins que tronc i cuixes facin una taula, mentó cap al pit",
+        "Apreta el cul 2 s a dalt i baixa a poc a poc"
+      ],
+      feel: "Cul, molt. Si ho notes a la lumbar o darrere la cuixa, ajusta.",
+      check: [
+        "A dalt, la canyella queda vertical (genolls a 90°)",
+        "No arquejes la lumbar: les costelles no s'obren",
+        "Mires endavant, no al sostre"
+      ],
+      stop: "Lumbar: puja menys i apreta el cul. Darrere la cuixa: acosta els peus.",
+      alt: "Si molesta: pont de glutis a terra sense pes.",
+      mistake: "Arquejar la lumbar per pujar més."
     },
     bicep: {
       name: "Curl de bíceps (Unica)", kind: "load", startLoad: 10, step: 5,
@@ -73,116 +153,46 @@ window.PROGRAM = {
         "Puja doblant només els colzes fins a dalt de tot, apreta 1 s",
         "Baixa a poc a poc (2 s) fins a quasi estirar del tot"
       ],
+      feel: "Bíceps. No a l'esquena ni a les espatlles.",
+      check: [
+        "Aixelles sempre enganxades al coixí",
+        "Baixes fins a quasi estirar el braç"
+      ],
+      stop: "Dolor al colze: treu pes.",
       mistake: "Aixecar els colzes del coixí o fer-ho amb l'esquena."
     },
-    twist: {
-      name: "Russian twist (girs asseguts)", kind: "level", unit: "reps/costat",
-      muscle: "Abdominals i oblics", equip: "Terra · KB 12 kg opcional",
-      levels: [
-        "Sense pes, peus a terra",
-        "Amb la KB de 12 kg a les mans, peus a terra",
-        "Amb la KB i els peus enlaire"
-      ],
+    ohtricep: {
+      name: "Extensió de tríceps per sobre el cap", kind: "load", startLoad: 6, step: 2,
+      muscle: "Tríceps — 2/3 del braç", equip: "1 manuella · banc gairebé vertical",
       cues: [
-        "Assegut a terra, genolls doblats, tronc inclinat enrere amb l'esquena recta",
-        "Gira el tronc a un costat i toca el terra al costat del maluc, després a l'altre",
-        "Lent i controlat: el que gira és el tronc, no només els braços"
+        "Seu amb l'esquena recolzada al banc vertical. Aguanta una manuella amb les dues mans, braços estirats a sobre del cap",
+        "Baixa la manuella darrere del cap doblant només els colzes, fins a notar l'estirament",
+        "Puja estirant els braços. Els colzes miren endavant i gairebé no es mouen"
       ],
-      mistake: "Arrodonir l'esquena o anar massa ràpid."
-    },
-    row: {
-      name: "Rem assegut (Unica, politja de baix)", kind: "load", startLoad: 20, step: 5,
-      muscle: "Esquena mitjana — POSTURA", equip: "Unica · nansa al ganxo de baix",
-      cues: [
-        "Enganxa la nansa al ganxo de baix, seu davant amb els genolls una mica doblats i el pit amunt",
-        "Estira la nansa cap al melic portant els colzes enrere, apreta les escàpules 1 s",
-        "Torna endavant a poc a poc sense encorbar l'esquena"
+      feel: "Darrere del braç (tríceps). No al colze ni a la lumbar.",
+      check: [
+        "Esquena enganxada al respatller, sense arquejar",
+        "Els colzes no s'obren cap als costats",
+        "Baixes fins a notar l'estirament, no a mig camí"
       ],
-      alt: "Si no trobes com muntar la nansa: fes jaló al pit amb les mans girades cap a tu (agafada inversa).",
-      mistake: "Tirar amb la lumbar o encorbar-se a la tornada."
-    },
-    squat: {
-      name: "Esquat", kind: "level",
-      muscle: "Cames i glutis", equip: "Pes corporal → KB 12 kg",
-      levels: [
-        "Esquat amb pes corporal (braços endavant)",
-        "Esquat goblet amb la KB de 12 kg al pit",
-        "Goblet amb pausa de 2 s a baix"
-      ],
-      cues: [
-        "Peus a l'amplada de les espatlles, puntes una mica enfora",
-        "Seu enrere i avall com si t'asseguessis en una cadira, pit amunt, talons a terra",
-        "Baixa fins que les cuixes quedin paral·leles al terra i puja"
-      ],
-      mistake: "Genolls cap endins o talons que s'aixequen."
-    },
-    chestpress: {
-      name: "Press de pit (Unica)", kind: "load", startLoad: 20, step: 5,
-      muscle: "Pit, tríceps", equip: "Unica · nanses de press",
-      cues: [
-        "Seu amb l'esquena al respatller, nanses a l'alçada del pit",
-        "Empeny endavant fins a estirar els braços (sense bloquejar del tot els colzes)",
-        "Torna a poc a poc (2 s) fins a notar l'estirament al pit"
-      ],
-      alt: "Si la teva Unica no té el press: fes flexions normals (3×6-12).",
-      mistake: "Aixecar les espatlles cap a les orelles."
-    },
-    bridge: {
-      name: "Pont de glutis", kind: "level",
-      muscle: "Glutis — clau per a l'esquena i la pelvis", equip: "Terra → sofà → KB 12 kg",
-      levels: [
-        "Pont de glutis a terra",
-        "Hip thrust amb l'esquena alta al sofà",
-        "Hip thrust amb la KB de 12 kg sobre els malucs"
-      ],
-      cues: [
-        "Estirat d'esquena, peus a terra a prop del cul, a l'amplada del maluc",
-        "Empeny amb els talons i aixeca el maluc fins que cuixes i tronc facin una línia recta",
-        "Apreta el cul 2 s a dalt i baixa a poc a poc"
-      ],
-      mistake: "Arquejar la lumbar per pujar més."
-    },
-    ytw: {
-      name: "Y-T-W a terra", kind: "level", unit: "reps per lletra",
-      muscle: "Esquena alta i espatlles — POSTURA", equip: "Terra → manuelles 2 kg",
-      levels: [
-        "Sense pes, estirat de panxa a terra",
-        "Amb les manuelles de 2 kg"
-      ],
-      cues: [
-        "Estirat de panxa, front recolzat, braços en forma de Y: aixeca'ls apretant l'esquena alta",
-        "Després en T (braços oberts) i en W (colzes doblats)",
-        "Lent: 2 s amunt, 1 s aguantant, 2 s avall"
-      ],
-      mistake: "Arronsar les espatlles cap a les orelles."
-    },
-    plank: {
-      name: "Planxa", kind: "time", startSecs: 30, step: 5, unit: "s",
-      muscle: "Core", equip: "Terra",
-      cues: [
-        "Colzes sota les espatlles, cos recte del cap als talons",
-        "Apreta el cul i la panxa, mira al terra",
-        "Respira; si el maluc cau, para i compta només el temps ben fet"
-      ],
-      mistake: "Maluc caigut o cul enlaire."
+      stop: "Molèstia al colze: treu pes i baixa una mica menys.",
+      alt: "Si l'espatlla no et deixa pujar els braços: flexions amb les mans al banc.",
+      mistake: "Obrir els colzes o arquejar l'esquena per fer força."
     }
   },
 
-  /* Clips curts (YouTube Shorts, 30-60 s, verificats 21/09/2026).
+  /* Clips curts (YouTube Shorts). Els nous de la v3 triats per títol el 25/10/2026: revisar-los.
      Clau = clau d'exercici, o nom exacte de l'ítem d'escalfament/refredament. */
   videos: {
-    pushup:     [{ id: "ZeDUsPI8Ufc", title: "Flexions sense lesionar-te (Diego Fernando)" }],
-    latpull:    [{ id: "TIZbG7Tjbf8", title: "Jaló al pit, tècnica correcta (Javi NewBody)" }],
-    legext:     [{ id: "xj5u9RvlkmA", title: "Extensió de quàdriceps en màquina (BenjaminTrainer)" }],
-    pecdeck:    [{ id: "kGVhRoYlb50", title: "Obertures en màquina (BenjaminTrainer)" }],
-    bicep:      [{ id: "uXaz4wPNaxs", title: "Curl de bíceps al coixí (Zona del Entrenador)" }],
-    twist:      [{ id: "9brzc9B1ZIU", title: "Russian twist (DKV)" }],
-    row:        [{ id: "D_UXjlrZIBw", title: "Rem en politja baixa (Maru Lekhal)" }],
-    squat:      [{ id: "4RN0YJF4YtE", title: "Esquat goblet en 30 segons (Jeronimo Milo)" }],
-    chestpress: [{ id: "qbkrwo9fTiw", title: "Press de pit en màquina (Vitar Club)" }],
-    bridge:     [{ id: "QIQtIs6yfXk", title: "Pont de glutis ben fet (sofitmami)" }],
-    ytw:        [{ id: "TMnRKdNOrrA", title: "Y-T-W a terra (Cali Hoss)" }],
-    plank:      [{ id: "ysX1CpHKGCo", title: "Tècnica de la planxa (Dra. Isabel Junio)" }],
+    gobletbox:     [{ id: "ScvZnl8pqO4", title: "Esquat al banc amb manuella (Alba Prieto)" }],
+    dbpress:       [{ id: "QTKX-FKoeFA", title: "Press de banca amb manuelles (Jorge Poduje)" }],
+    latpull:       [{ id: "TIZbG7Tjbf8", title: "Jaló al pit, tècnica correcta (Javi NewBody)" }],
+    inclinerow:    [{ id: "8Q4kzzydoRA", title: "Rem amb manuelles al banc inclinat (Effort Gym)" }],
+    lateralraise:  [{ id: "Vh_Kjw3O-DQ", title: "Elevacions laterals, fes-les així (Alberto Mareque)" }],
+    ohtricep:      [{ id: "KZUytRrvghc", title: "Extensió de tríceps per sobre el cap (Rodrigo Oscos)" }],
+    hipthrust:     [{ id: "cIHC3lhgkNk", title: "Hip thrust amb manuella (Fer Strongg)" },
+                    { id: "vmx-4TMYNK4", title: "Com fer bé el hip thrust (Lydia Bellamy)" }],
+    bicep:         [{ id: "uXaz4wPNaxs", title: "Curl de bíceps al coixí (Zona del Entrenador)" }],
     "Cinta o rem suau": [{ id: "vj8MVU2UiEk", title: "Si tries el rem: com remar bé (Fran, entrenador de remers)" }],
     "Gat-camell": [{ id: "gWbfVPK4RAU", title: "Gat-camell (Consorci Sanitari Integral, en català)" }],
     "Cobra a terra": [{ id: "yhkOiReYqy4", title: "Postura de la cobra pas a pas (Pau's Secrets)" }],
@@ -192,33 +202,32 @@ window.PROGRAM = {
 
   /* Descans després de cada sèrie (segons), per exercici */
   restSecs: {
-    latpull: 90, row: 90, chestpress: 90, legext: 75, squat: 90,
-    pushup: 75, pecdeck: 60, bicep: 60, bridge: 60, ytw: 60,
-    twist: 45, plank: 45
+    gobletbox: 90, dbpress: 90, latpull: 90, inclinerow: 90,
+    hipthrust: 75, lateralraise: 60, ohtricep: 60, bicep: 60
   },
 
-  /* ---------- Sessions ---------- */
+  /* ---------- Sessions ----------
+     Criteri: fàcil de fer bé (recolzat al banc o a la màquina) i molt efectiu (músculs grans, recorregut complet).
+     L'esquat i el hip thrust surten a totes dues: com més els repeteixes, abans els aprens */
   workouts: {
     A: {
-      name: "Sessió A", focus: "Pit, esquena, cames, braços",
+      name: "Sessió A", focus: "Cames, pit, esquena, tríceps",
       items: [
-        { ex: "pushup",  sets: 3, reps: [6, 12] },
-        { ex: "latpull", sets: 3, reps: [8, 12] },
-        { ex: "legext",  sets: 3, reps: [10, 15] },
-        { ex: "pecdeck", sets: 2, reps: [10, 15] },
-        { ex: "bicep",   sets: 2, reps: [10, 12] },
-        { ex: "twist",   sets: 2, reps: [10, 10] }
+        { ex: "gobletbox", sets: 3, reps: [8, 12] },
+        { ex: "dbpress",   sets: 3, reps: [8, 12] },
+        { ex: "latpull",   sets: 3, reps: [8, 12] },
+        { ex: "hipthrust", sets: 3, reps: [10, 15] },
+        { ex: "ohtricep",  sets: 2, reps: [10, 15] }
       ]
     },
     B: {
-      name: "Sessió B", focus: "Esquena, cames, pit, postura",
+      name: "Sessió B", focus: "Cames, esquena, espatlles, bíceps",
       items: [
-        { ex: "row",        sets: 3, reps: [8, 12] },
-        { ex: "squat",      sets: 3, reps: [10, 15] },
-        { ex: "chestpress", sets: 3, reps: [8, 12] },
-        { ex: "bridge",     sets: 3, reps: [10, 15] },
-        { ex: "ytw",        sets: 2, reps: [8, 10] },
-        { ex: "plank",      sets: 2, reps: [30, 30] }
+        { ex: "gobletbox",    sets: 3, reps: [8, 12] },
+        { ex: "inclinerow",   sets: 3, reps: [8, 12] },
+        { ex: "lateralraise", sets: 3, reps: [12, 20] },
+        { ex: "hipthrust",    sets: 3, reps: [10, 15] },
+        { ex: "bicep",        sets: 2, reps: [10, 12] }
       ]
     }
   },
@@ -226,7 +235,8 @@ window.PROGRAM = {
   warmup: [
     { name: "Cinta o rem suau", detail: "3 min caminant ràpid a la cinta (o rem tranquil)", secs: 180 },
     { name: "Gat-camell", detail: "×8 a quatre grapes: esquena amunt com un gat, després panxa avall" },
-    { name: "Cercles de braços", detail: "×10 endavant i ×10 enrere" }
+    { name: "Cercles de braços", detail: "×10 endavant i ×10 enrere" },
+    { name: "Esquat al banc sense pes", detail: "×10 lents, per recordar el moviment" }
   ],
 
   cooldown: [
@@ -251,23 +261,23 @@ window.PROGRAM = {
 
   progressionRules: [
     "Cada exercici té un rang de reps (ex. 8-12). Fes totes les sèries dins del rang.",
-    "Quan totes les sèries arriben al màxim → la propera sessió puja sola: +5 kg a la Unica, següent nivell als de pes corporal, +5 s a la planxa.",
+    "Quan totes les sèries arriben al màxim → la propera sessió puja sola: +2 kg a les manuelles (+1 kg a les elevacions laterals), +5 kg a la Unica.",
     "Si una sèrie no arriba al mínim → mantens. Sense pressa.",
-    "L'última rep de cada sèrie ha de costar, però amb bona tècnica.",
+    "L'última rep de cada sèrie ha de costar, però amb bona tècnica. Si la tècnica es trenca, la sèrie s'acaba aquí.",
     "Setmana 8 = descàrrega: una sèrie menys a tot.",
     "Si un dia no pots, no el recuperis: fes la següent sessió el següent dia planificat."
   ],
 
   notes: {
-    posture: "Feina asseguda = pit tancat, esquena alta i glutis febles. Per això hi ha rem, Y-T-W, pont de glutis i estiraments cada sessió.",
+    posture: "Feina asseguda = pit tancat, esquena alta i glutis febles. Per això hi ha rem, hip thrust i estiraments cada setmana.",
     pullupBar: "",
     disclaimer: "Recomanacions generals de fitness i nutrició, no consells mèdics. Si apareix dolor, para i consulta un fisioterapeuta."
   },
 
   milestones: [
     /* gain = kg per sobre del pes inicial del perfil */
-    { week: 2,  gain: 1.5, text: "Pes en marxa (glicogen i aigua). Dorms millor, menys mal d'esquena." },
-    { week: 4,  gain: 2,   text: "Força +20-40%: flexions ×2, +10 kg al jaló i al rem." },
+    { week: 2,  gain: 1.5, text: "Tècnica apresa: ja saps fer els 5 exercicis sense mirar el clip." },
+    { week: 4,  gain: 2,   text: "Força +20-40%: +4 kg a les manuelles, +10 kg al jaló." },
     { week: 8,  gain: 3.5, text: "Primer canvi visible al mirall: braços i pit més plens, postura més recta." },
     { week: 13, gain: 5,   text: "La gent del teu voltant ho comenta." },
     { week: 26, gain: 7,   text: "Abdominals marcats si el greix es manté baix." },
