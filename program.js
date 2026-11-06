@@ -65,10 +65,10 @@ window.PROGRAM = {
     },
     chestpress: {
       name: "Press de pit (Unica)", kind: "load", startLoad: 20, step: 5,
-      muscle: "Pit, tríceps", equip: "Unica · nanses de press",
+      muscle: "Pit, tríceps", equip: "Unica · nanses tipus manillar de moto",
       cues: [
-        "Seu amb l'esquena al respatller, nanses a l'alçada del pit",
-        "Empeny endavant fins a estirar els braços (sense bloquejar del tot els colzes)",
+        "Seu amb l'esquena al respatller i agafa les nanses tipus manillar de moto, a l'altura del pit",
+        "Empeny endavant fins a estirar els braços, com Superman (sense bloquejar del tot els colzes)",
         "Torna a poc a poc (2 s) fins a notar l'estirament al pit"
       ],
       feel: "Pit i tríceps (darrere del braç). No a la part davantera de l'espatlla.",
@@ -78,7 +78,7 @@ window.PROGRAM = {
         "Tornes a poc a poc, sense deixar caure la placa"
       ],
       stop: "Molèstia punxant a l'espatlla: no tornis tan enrere i treu 5 kg.",
-      alt: "Pec deck (Unica): seu i tanca els braços al davant.",
+      alt: "Pec deck (Unica): els coixinets en forma de T, que tanques cap endins davant del pit.",
       mistake: "Aixecar les espatlles cap a les orelles."
     },
     latpull: {
