@@ -17,8 +17,7 @@
       age: 22, height: 179, sex: 'm', startWeight: 58, targetWeight: 70,
       activity: 1.4, hardgainer: true,
       trainDays: ['1', '3', '5'],       // dilluns, dimecres, divendres
-      programStart: todayISO(),
-      kcalAdjust: 0, kcalOverride: 0, proteinOverride: 0, lastAdjust: ''
+      programStart: todayISO()
     };
   }
 
@@ -31,13 +30,8 @@
       settings: { weeklyGoal: 3, restSecs: 90 },
       profile: defaultProfile(),
       weights: [],    // { date, kg }
-      diet: {},       // { 'YYYY-MM-DD': { slots: {slotId: optionId}, extras: {id: bool} } }
       program: { nextWorkout: 'A', levels: {}, loads: {}, restDone: {}, lastSummary: null, pv: P.meta.version },
-      shopping: {},   // { item: bool }
-      pantry: P.diet.defaultPantry.slice(),  // ids d'aliments que l'usuari té/menja
-      customFoods: {},                       // { id: { name, portion, kcal, prot, ... } } productes propis o valors editats
-      combos: [],                            // àpats habituals apresos: { id, name, items: [[food, qty]], count }
-      learned: {}                            // exercicis apresos: { exKey: { clean, checks: [bool], done } }
+      learned: {}     // exercicis apresos: { exKey: { clean, checks: [bool], done } }
     };
   }
 
@@ -57,7 +51,6 @@
         if (d.profile.startWeight === 60 && d.weights.length === 0) d.profile.startWeight = 58;
         d.profile.v3b = true;
       }
-      d.diet = d.diet || {};
       const storedPv = d.program ? d.program.pv : undefined;
       d.program = Object.assign(def.program, d.program || {});
       // Programa nou (exercicis diferents) → pesos i nivells de zero i bloc des de la setmana 1; les sessions es conserven
@@ -69,10 +62,6 @@
         d.profile.programStart = todayISO();
         d.program.pv = P.meta.version;
       }
-      d.shopping = d.shopping || {};
-      d.pantry = Array.isArray(d.pantry) ? d.pantry : P.diet.defaultPantry.slice();
-      d.customFoods = d.customFoods || {};
-      d.combos = Array.isArray(d.combos) ? d.combos : [];
       d.learned = d.learned || {};
       d.version = 3;
       // Desa el canvi de programa ara: si no, el bloc tornaria a la setmana 1 a cada obertura fins al primer desat
@@ -333,7 +322,7 @@
     const st = data.program;
     if (ex.kind === 'load') return { load: st.loads[key] ?? ex.startLoad };
     if (ex.kind === 'time') return { secs: st.loads[key] ?? ex.startSecs };
-    const lvl = Math.min(st.levels[key] ?? 0, ex.levels.length - 1);
+    const lvl = Math.min(st.levels[key] ?? (ex.startLevel || 0), ex.levels.length - 1);
     return { level: lvl, levelName: ex.levels[lvl] };
   }
 
@@ -348,22 +337,6 @@
     if (ex.kind === 'load') return `${sets}×${item.reps[0]}-${item.reps[1]} · ${loadLabel(ex, s.load)}`;
     if (ex.kind === 'time') return `${sets}×${s.secs} s`;
     return `${sets}×${item.reps[0]}-${item.reps[1]}${ex.unit ? ' ' + ex.unit : ''}`;
-  }
-
-  // Objectius nutricionals (Mifflin-St Jeor + factor d'activitat + superàvit + calibració)
-  function computeTargets() {
-    const pr = data.profile;
-    const w = weightAvg(todayISO(), 7) || pr.startWeight;
-    const bmr = 10 * w + 6.25 * pr.height - 5 * pr.age + (pr.sex === 'f' ? -161 : 5);
-    const tdee = bmr * (pr.activity || 1.4);
-    const week = programWeek();
-    let surplus = pr.hardgainer ? 500 : 400;
-    if (week <= 1) surplus -= 300;              // setmana d'adaptació
-    let kcal = Math.round((tdee + surplus + (pr.kcalAdjust || 0)) / 50) * 50;
-    if (pr.kcalOverride > 0) kcal = pr.kcalOverride;
-    let protein = Math.round((1.8 * w) / 5) * 5;
-    if (pr.proteinOverride > 0) protein = pr.proteinOverride;
-    return { kcal, protein, bmr: Math.round(bmr), tdee: Math.round(tdee), week, ramp: week <= 1, weight: w };
   }
 
   // Què toca avui
@@ -427,141 +400,9 @@
     return now - prev;
   }
 
-  function weightSuggestion() {
-    const today = todayISO();
-    const pr = data.profile;
-    if (pr.lastAdjust && daysBetween(pr.lastAdjust, today) < 14) {
-      return { text: `Ajust de calories aplicat el ${fmtDate(pr.lastAdjust, { day: 'numeric', month: 'long' })}. Espera 2 setmanes per valorar-ne l'efecte.` };
-    }
-    const t = weightTrend();
-    const span = data.weights.length ? daysBetween(data.weights[0].date, today) : 0;
-    if (t == null || span < 13) {
-      return { text: 'Pesa\'t cada matí. A partir de 2 setmanes de dades et diré si cal ajustar les calories.' };
-    }
-    if (t < 0.25) return { text: `Puges ${fmt(t)} kg/setmana (objectiu 0,25-0,5). Toca afegir +250 kcal/dia: l'extra de nit cada dia, o més crema de cacauet al batut.`, delta: 250 };
-    if (t > 0.6) return { text: `Puges ${fmt(t)} kg/setmana, una mica ràpid. Treu 150 kcal/dia (menys oli o sense l'extra de nit).`, delta: -150 };
-    return { text: `Puges ${fmt(t)} kg/setmana: perfecte, dins de l'objectiu. No canviïs res.` };
-  }
-
-  /* ========== Dieta: rebost, registre per porcions i recomanació ========== */
-
-  // Catàleg + productes propis + valors editats per l'usuari
-  function allFoods() {
-    const out = {};
-    for (const id in P.diet.foods) out[id] = Object.assign({}, P.diet.foods[id]);
-    for (const id in data.customFoods) out[id] = Object.assign(out[id] || { role: 'mix', cap: 2, meals: ['esmorzar', 'migmati', 'dinar', 'berenar', 'sopar', 'extra'] }, data.customFoods[id]);
-    return out;
-  }
-
-  // Dia de dieta: log = [{ food, qty, meal, t }], extras = { sleep, water, creatine }
-  function dietDay(iso) {
-    if (!data.diet[iso]) data.diet[iso] = { log: [], extras: {} };
-    const d = data.diet[iso];
-    if (!Array.isArray(d.log)) d.log = [];
-    if (!d.extras) d.extras = {};
-    return d;
-  }
-
-  function itemsTotals(items, foods) {
-    foods = foods || allFoods();
-    let kcal = 0, prot = 0;
-    for (const [id, qty] of items) { const f = foods[id]; if (!f) continue; kcal += f.kcal * qty; prot += f.prot * qty; }
-    return { kcal: Math.round(kcal), prot: Math.round(prot) };
-  }
-
-  function dietTotals(iso) {
-    const day = data.diet[iso];
-    if (!day || !Array.isArray(day.log)) return { kcal: 0, prot: 0 };
-    return itemsTotals(day.log.map(e => [e.food, e.qty]));
-  }
-
-  function creatineIncluded(iso) {
-    const day = data.diet[iso];
-    return !!(day && Array.isArray(day.log) && day.log.some(e => e.food === 'creatina'));
-  }
-
-  // Fracció de l'objectiu de calories assolit (0..1)
-  function dietAdherence(iso) {
-    return Math.min(1, dietTotals(iso).kcal / computeTargets().kcal);
-  }
-
-  // Quin àpat toca ara segons l'hora
-  function nextMeal(now) {
-    now = now || new Date();
-    const h = now.getHours() + now.getMinutes() / 60;
-    const mt = P.diet.mealTimes;
-    let idx = mt.findIndex(m => h < m.until);
-    if (idx < 0) idx = mt.length - 1;
-    return Object.assign({ index: idx }, mt[idx]);
-  }
-
-  function logItems(iso, items, mealName) {
-    const day = dietDay(iso);
-    const t = new Date();
-    const hhmm = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
-    for (const [food, qty] of items) day.log.push({ food, qty, meal: mealName || nextMeal().name, t: hhmm });
-    saveData();
-  }
-
-  // Desa (o reforça) un àpat habitual a partir d'una llista d'ítems
-  function saveCombo(items, name) {
-    const key = items.map(([f, q]) => `${f}:${q}`).sort().join(',');
-    const found = data.combos.find(c => c.items.map(([f, q]) => `${f}:${q}`).sort().join(',') === key);
-    if (found) { found.count++; saveData(); return found; }
-    const c = { id: uid(), name, items, count: 1 };
-    data.combos.push(c);
-    saveData();
-    return c;
-  }
-
-  function comboAutoName(items, foods) {
-    return items.slice().sort((a, b) => foods[b[0]].kcal * b[1] - foods[a[0]].kcal * a[1]).slice(0, 2).map(([f]) => foods[f].name).join(' + ');
-  }
-
-  // Recomanació: què menjar ARA, amb el rebost, per tancar el que falta avui.
-  // exclude: ids de combos o d'aliments a evitar (per a "Una altra idea")
-  function recommend(iso, exclude) {
-    exclude = exclude || [];
-    const foods = allFoods();
-    const T = computeTargets();
-    const tot = dietTotals(iso);
-    const R = T.kcal - tot.kcal, Pr = T.protein - tot.prot;
-    const nm = nextMeal();
-    const mainLeft = Math.max(1, Math.min(5, 5 - nm.index));
-    if (R <= 100) return { meal: nm, done: true, text: 'Objectiu d\'avui complert. Si tens gana: un got de llet o una fruita.' };
-    const kcalT = Math.max(300, Math.min(900, Math.round(R / mainLeft / 10) * 10));
-    // Si la proteïna ja està coberta, no en forcem més: només energia
-    const protT = Pr <= 0 ? 0 : Math.max(15, Math.min(45, Math.round(Pr / mainLeft)));
-    const why = `Et falten ${R} kcal i ${Math.max(0, Math.round(Pr))} g de proteïna, en ${mainLeft} àpat${mainLeft > 1 ? 's' : ''}.`;
-
-    // 1) Un àpat teu habitual que encaixi amb el que falta
-    const fit = (data.combos || []).map(c => ({ c, t: itemsTotals(c.items, foods) }))
-      .filter(x => !exclude.includes(x.c.id) && x.t.kcal >= kcalT * 0.7 && x.t.kcal <= kcalT * 1.35 && x.t.prot >= protT * 0.6)
-      .sort((a, b) => b.c.count - a.c.count)[0];
-    if (fit) return { meal: nm, items: fit.c.items, kcal: fit.t.kcal, prot: fit.t.prot, why, combo: fit.c, name: fit.c.name };
-
-    // 2) Muntar-lo amb el rebost: primer proteïna, després energia
-    const ok = id => foods[id] && !exclude.includes(id) && (foods[id].meals || []).includes(nm.id);
-    const ids = (data.pantry || []).filter(ok);
-    const qty = {};
-    let kcal = 0, prot = 0;
-    const add = id => { qty[id] = (qty[id] || 0) + 1; kcal += foods[id].kcal; prot += foods[id].prot; };
-    const canAdd = id => (qty[id] || 0) < (foods[id].cap || 1);
-    const density = id => foods[id].prot / Math.max(1, foods[id].kcal);
-    const byProt = ids.filter(id => foods[id].role === 'prot').sort((a, b) => density(b) - density(a));
-    let g = 0;
-    while (prot < protT && kcal < kcalT * 1.1 && g++ < 20) { const id = byProt.find(canAdd); if (!id) break; add(id); }
-    const byKcal = ids.filter(id => foods[id].role !== 'prot').sort((a, b) => foods[b].kcal - foods[a].kcal);
-    g = 0;
-    while (kcal < kcalT * 0.9 && g++ < 20) { const id = byKcal.find(x => canAdd(x) && kcal + foods[x].kcal <= kcalT * 1.2); if (!id) break; add(id); }
-    const items = Object.entries(qty);
-    if (!items.length) return { meal: nm, empty: true, why, text: 'No tinc res al teu rebost per a aquest àpat. Afegeix-hi aliments a "El meu rebost".' };
-    return { meal: nm, items, kcal: Math.round(kcal), prot: Math.round(prot), why };
-  }
-
   /* ========== Navegació ========== */
 
-  const VIEW_TITLES = { avui: 'Avui', programa: 'Programa', dieta: 'Dieta', progres: 'Progrés', mes: 'Més' };
+  const VIEW_TITLES = { avui: 'Avui', programa: 'Programa', progres: 'Progrés', mes: 'Més' };
 
   function showView(name) {
     currentView = name;
@@ -577,7 +418,6 @@
     updateExerciseDatalist();
     if (currentView === 'avui') renderAvui();
     if (currentView === 'programa') renderPrograma();
-    if (currentView === 'dieta') renderDieta();
     if (currentView === 'progres') renderProgres();
     if (currentView === 'mes') renderMes();
   }
@@ -588,12 +428,11 @@
     const v = $('#view-avui');
     const today = todayISO();
     const info = todayInfo();
-    const T = computeTargets();
     const weekStart = mondayOf(new Date());
 
     let html = `<div class="spread">
       <p class="muted" style="font-size:1rem">${fmtDate(today)}</p>
-      <span class="chip">Setmana ${T.week}${isDeload() ? ' · descàrrega' : ''}</span>
+      <span class="chip">Setmana ${programWeek()}${isDeload() ? ' · descàrrega' : ''}</span>
     </div>`;
 
     // Resum de la sessió d'avui (progressions aplicades)
@@ -620,7 +459,7 @@
       if (info.done) {
         html += `<div class="card">
           <h2>✅ ${esc(wk.name)} feta avui</h2>
-          <p class="muted">${esc(wk.focus)}. Ara toca menjar i dormir: aquí és on creix el múscul.</p>
+          <p class="muted">${esc(wk.focus)}. Ara toca descansar: aquí és on creix el múscul.</p>
           <p class="muted" style="margin-top:6px">${esc(P.finisher.name)}: ${esc(P.finisher.detail)}</p>
         </div>`;
       } else {
@@ -673,29 +512,6 @@
         <span class="muted grow" style="font-size:0.8rem">${wYest ? `Ahir: ${fmt(wYest.kg)} kg` : ''}${avg7 ? ` · Mitjana 7 dies: ${fmt(avg7)} kg` : ''}</span>
       </div>
       <p class="muted" style="margin-top:6px;font-size:0.78rem">Al matí, després del lavabo i abans d'esmorzar.</p>
-    </div>`;
-
-    // Dieta: on ets avui i què et toca ara
-    const day = dietDay(today);
-    const tot = dietTotals(today);
-    const rec = recommend(today);
-    const foodsNow = allFoods();
-    const creat = creatineIncluded(today) || !!day.extras.creatine;
-    html += `<div class="card">
-      <div class="spread"><h2>🍽️ Dieta</h2><span class="muted">${tot.kcal} / ${T.kcal} kcal · ${tot.prot} / ${T.protein} g</span></div>
-      <div class="bar"><div class="bar-fill" style="width:${Math.min(100, tot.kcal / T.kcal * 100)}%"></div></div>
-      ${rec.done || rec.empty ? `<p class="muted" style="margin-top:8px">${esc(rec.text)}</p>` : `
-        <p style="margin-top:8px"><b>Ara toca: ${esc(rec.meal.name)}</b></p>
-        <div class="ex-line">${rec.items.map(([id, q]) => `${q > 1 ? q + '× ' : ''}${esc(foodsNow[id].name)}`).join(' · ')} <span class="muted">· ${rec.kcal} kcal · ${rec.prot} g</span></div>
-        <p class="muted" style="font-size:0.78rem">${esc(rec.why)}</p>
-        <div class="row" style="margin-top:8px">
-          <button class="btn small primary" id="btnEatRec">✓ Ho he menjat</button>
-          <button class="btn small" id="btnGoDiet">Registrar altres coses</button>
-        </div>`}
-      <div class="chips" style="margin-top:10px">
-        <button class="chip-btn ${creat ? 'on' : ''}" data-extra="creatine">${creat ? '✓ ' : ''}Creatina</button>
-        ${P.diet.extras.map(x => `<button class="chip-btn ${day.extras[x.id] ? 'on' : ''}" data-extra="${x.id}">${day.extras[x.id] ? '✓ ' : ''}${esc(x.short || x.name)}</button>`).join('')}
-      </div>
     </div>`;
 
     // Anell d'objectiu setmanal (= dies d'entrenament del programa)
@@ -759,29 +575,16 @@
       if (kg < 30 || kg > 200) return;
       saveWeight(kg); render();
     };
-    if ($('#btnEatRec')) $('#btnEatRec').onclick = () => {
-      logItems(today, rec.items, rec.meal.name);
-      if (rec.combo) { rec.combo.count++; saveData(); }
-      render();
-    };
-    if ($('#btnGoDiet')) $('#btnGoDiet').onclick = () => showView('dieta');
-    v.querySelectorAll('[data-extra]').forEach(b => b.onclick = () => {
-      if (b.dataset.extra === 'creatine' && creatineIncluded(today)) return; // ja va al bol
-      const d = dietDay(today);
-      d.extras[b.dataset.extra] = !d.extras[b.dataset.extra];
-      saveData(); render();
-    });
   }
 
   /* ========== Vista: Programa ========== */
 
   function renderPrograma() {
     const v = $('#view-programa');
-    const T = computeTargets();
     const sched = weekSchedule();
 
     let html = `<div class="card">
-      <div class="spread"><h2>${esc(P.meta.name)}</h2><span class="chip">Setmana ${T.week}</span></div>
+      <div class="spread"><h2>${esc(P.meta.name)}</h2><span class="chip">Setmana ${programWeek()}</span></div>
       <p class="muted">${esc(P.meta.subtitle)}</p>
       <div class="row" style="margin-top:12px">
         ${sched.map(d => `<div style="flex:1;text-align:center">
@@ -970,186 +773,6 @@
       ${vids.map(videoEmbedHtml).join('')}`);
   }
 
-  /* ========== Vista: Dieta ========== */
-
-  function renderDieta() {
-    const v = $('#view-dieta');
-    const today = todayISO();
-    const T = computeTargets();
-    const day = dietDay(today);
-    const tot = dietTotals(today);
-    const foods = allFoods();
-    const rec = recommend(today, renderDieta.exclude || []);
-    const creatAuto = creatineIncluded(today);
-    const creat = creatAuto || !!day.extras.creatine;
-
-    let html = `<div class="card">
-      <div class="spread"><h2>Avui</h2><span class="chip">${T.ramp ? 'Setmana d\'adaptació' : 'Superàvit'}</span></div>
-      <div class="spread" style="margin-top:8px"><span>Calories</span><b>${tot.kcal} / ${T.kcal}</b></div>
-      <div class="bar"><div class="bar-fill" style="width:${Math.min(100, tot.kcal / T.kcal * 100)}%"></div></div>
-      <div class="spread" style="margin-top:8px"><span>Proteïna</span><b>${tot.prot} / ${T.protein} g</b></div>
-      <div class="bar"><div class="bar-fill good" style="width:${Math.min(100, tot.prot / T.protein * 100)}%"></div></div>
-    </div>`;
-
-    // Recomanació
-    html += `<div class="card" style="border-color: var(--accent)">
-      <div class="spread"><h2>Ara toca: ${esc(rec.meal.name)}</h2>${rec.done || rec.empty ? '' : `<span class="muted">${rec.kcal} kcal · ${rec.prot} g</span>`}</div>
-      ${rec.done || rec.empty ? `<p class="muted">${esc(rec.text)}</p>` : `
-        ${rec.name ? `<p class="muted" style="font-size:0.8rem">El teu "${esc(rec.name)}"</p>` : ''}
-        ${rec.items.map(([id, q]) => `<div class="ex-line">• ${q}× <b>${esc(foods[id].name)}</b> <span class="muted">${esc(foods[id].portion)} · ${Math.round(foods[id].kcal * q)} kcal</span></div>`).join('')}
-        <p class="muted" style="font-size:0.78rem;margin-top:6px">${esc(rec.why)}</p>
-        <div class="row" style="margin-top:8px">
-          <button class="btn small primary" id="btnEatRec">✓ Ho he menjat</button>
-          <button class="btn small" id="btnOtherRec">Una altra idea</button>
-        </div>`}
-    </div>`;
-
-    // Registre d'avui agrupat per àpat
-    const groups = [];
-    day.log.forEach((e, i) => {
-      let g = groups.find(x => x.meal === (e.meal || ''));
-      if (!g) { g = { meal: e.meal || '', entries: [], items: [] }; groups.push(g); }
-      g.entries.push({ e, i });
-      g.items.push([e.food, e.qty]);
-    });
-    html += `<div class="card">
-      <div class="spread"><h2>Avui he menjat</h2><span class="muted">${tot.kcal} kcal · ${tot.prot} g</span></div>
-      ${day.log.length ? groups.map((g, gi) => `<div style="margin-top:8px">
-          <div class="spread"><b>${esc(g.meal || 'Àpat')}</b><span class="muted">${itemsTotals(g.items, foods).kcal} kcal</span></div>
-          ${g.entries.map(({ e, i }) => `<div class="check-row" style="cursor:default">
-            <span class="grow">${e.qty}× ${esc(foods[e.food] ? foods[e.food].name : e.food)} <span class="muted" style="font-size:0.78rem">${esc(e.t || '')}</span></span>
-            <span class="muted">${Math.round((foods[e.food] ? foods[e.food].kcal : 0) * e.qty)}</span>
-            <button class="btn tiny danger" data-rmlog="${i}">✕</button>
-          </div>`).join('')}
-          <button class="btn tiny" data-savecombo="${gi}">💾 Desa com a àpat habitual</button>
-        </div>`).join('') : `<p class="muted">Encara res. Toca els aliments de sota per registrar.</p>`}
-    </div>`;
-
-    // Els meus àpats habituals (un toc)
-    if (data.combos.length) {
-      html += `<div class="card"><h2>Els meus àpats</h2><div class="chips" style="margin-top:6px">
-        ${data.combos.slice().sort((a, b) => b.count - a.count).map(c => `<button class="chip-btn" data-combo="${c.id}">${esc(c.name)} · ${itemsTotals(c.items, foods).kcal}</button>`).join('')}
-      </div><p class="muted" style="font-size:0.75rem;margin-top:6px">Toca per registrar-lo sencer. Mantén premut per esborrar-lo.</p></div>`;
-    }
-
-    // Registrar: rebost com a xips (toca = 1 porció)
-    const countToday = {};
-    day.log.forEach(e => { countToday[e.food] = (countToday[e.food] || 0) + e.qty; });
-    html += `<div class="card">
-      <div class="spread"><h2>Registrar</h2><span class="muted">toca = 1 porció</span></div>
-      <div class="chips" style="margin-top:6px">
-        ${data.pantry.filter(id => foods[id]).map(id => `<button class="chip-btn ${countToday[id] ? 'on' : ''}" data-add="${id}" title="${esc(foods[id].portion)}">${esc(foods[id].name)}${countToday[id] ? ` <b>×${countToday[id]}</b>` : ''}</button>`).join('')}
-      </div>
-    </div>`;
-
-    // Cada dia
-    html += `<div class="card">
-      <h2>Cada dia</h2>
-      <div class="check-row" data-extra="creatine">
-        <span class="opt-check ${creat ? 'on' : ''}">${creat ? '✓' : ''}</span>
-        <div class="grow"><div>Creatina 5 g</div><div class="muted" style="font-size:0.78rem">${creatAuto ? 'Ja registrada avui' : 'Cada dia, també els de descans'}</div></div>
-      </div>
-      ${P.diet.extras.map(x => `<div class="check-row" data-extra="${x.id}">
-        <span class="opt-check ${day.extras[x.id] ? 'on' : ''}">${day.extras[x.id] ? '✓' : ''}</span>
-        <div class="grow"><div>${esc(x.name)}</div><div class="muted" style="font-size:0.78rem">${esc(x.detail)}</div></div>
-      </div>`).join('')}
-    </div>`;
-
-    // Setmana: % de l'objectiu de kcal
-    const mon = mondayOf(new Date());
-    let dots = '';
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(mon); d.setDate(d.getDate() + i);
-      const iso = isoOf(d);
-      const a = iso <= today ? dietAdherence(iso) : null;
-      const cls = a == null ? '' : a >= 0.9 ? 'good' : a >= 0.6 ? 'half' : 'low';
-      dots += `<div style="flex:1;text-align:center"><div class="muted" style="font-size:0.68rem">${DAY_SHORT[String(d.getDay())]}</div>
-        <div class="adh-dot ${cls} ${iso === today ? 'today' : ''}">${a == null ? '' : Math.round(a * 100)}</div></div>`;
-    }
-    html += `<div class="card"><div class="spread"><h2>Setmana</h2><span class="muted">% de les calories</span></div><div class="row" style="margin-top:6px">${dots}</div></div>`;
-
-    // El meu rebost: catàleg + productes propis (valors de l'etiqueta)
-    html += `<div class="card"><details>
-      <summary><b>🧺 El meu rebost</b> <span class="muted">${data.pantry.length} aliments</span></summary>
-      <p class="muted" style="font-size:0.78rem;margin:6px 0">${esc(P.diet.intro)} Marca el que tens a casa:</p>
-      <div class="chips">${Object.keys(foods).map(id => `<button class="chip-btn ${data.pantry.includes(id) ? 'on' : ''}" data-pantry="${id}">${esc(foods[id].name)}</button>`).join('')}</div>
-      <h3 style="margin:12px 0 6px">Afegir o editar un producte (valors de l'etiqueta)</h3>
-      <div class="stack" style="margin:0">
-        <select id="pfId"><option value="">— Producte nou —</option>${Object.keys(foods).map(id => `<option value="${id}">${esc(foods[id].name)}</option>`).join('')}</select>
-        <input type="text" id="pfName" placeholder="Nom (ex: Iogurt proteic Hacendado)">
-        <input type="text" id="pfPortion" placeholder="Porció (ex: 1 pot de 200 g)">
-        <div class="row"><input type="number" id="pfKcal" inputmode="numeric" placeholder="kcal per porció"><input type="number" id="pfProt" inputmode="decimal" step="0.1" placeholder="proteïna (g)"></div>
-        <button class="btn small primary" id="btnSaveFood">Desa al rebost</button>
-      </div>
-    </details></div>`;
-
-    html += `<div class="card"><details><summary><b>💡 Trucs</b></summary>${P.diet.tips.map(t => `<div class="ex-line">• ${esc(t)}</div>`).join('')}</details></div>`;
-
-    v.innerHTML = html;
-
-    if ($('#btnEatRec')) $('#btnEatRec').onclick = () => {
-      logItems(today, rec.items, rec.meal.name);
-      if (rec.combo) { rec.combo.count++; saveData(); }
-      renderDieta.exclude = [];
-      render();
-    };
-    if ($('#btnOtherRec')) $('#btnOtherRec').onclick = () => {
-      renderDieta.exclude = (renderDieta.exclude || []).concat(rec.combo ? [rec.combo.id] : [rec.items[0][0]]);
-      renderDieta();
-    };
-    v.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { logItems(today, [[b.dataset.add, 1]], nextMeal().name); renderDieta.exclude = []; render(); });
-    v.querySelectorAll('[data-rmlog]').forEach(b => b.onclick = () => { dietDay(today).log.splice(Number(b.dataset.rmlog), 1); saveData(); render(); });
-    v.querySelectorAll('[data-savecombo]').forEach(b => b.onclick = () => {
-      const g = groups[Number(b.dataset.savecombo)];
-      // agrupa per aliment
-      const merged = {};
-      g.items.forEach(([f, q]) => { merged[f] = (merged[f] || 0) + q; });
-      const items = Object.entries(merged);
-      saveCombo(items, comboAutoName(items, foods));
-      render();
-    });
-    v.querySelectorAll('[data-combo]').forEach(b => {
-      b.onclick = () => {
-        const c = data.combos.find(x => x.id === b.dataset.combo);
-        if (!c) return;
-        logItems(today, c.items, nextMeal().name);
-        c.count++; saveData(); render();
-      };
-      let timer = null;
-      b.addEventListener('pointerdown', () => { timer = setTimeout(() => { data.combos = data.combos.filter(x => x.id !== b.dataset.combo); saveData(); render(); }, 800); });
-      ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => clearTimeout(timer)));
-    });
-    v.querySelectorAll('[data-extra]').forEach(el => el.onclick = () => {
-      if (el.dataset.extra === 'creatine' && creatAuto) return;
-      const d = dietDay(today);
-      d.extras[el.dataset.extra] = !d.extras[el.dataset.extra];
-      saveData(); render();
-    });
-    v.querySelectorAll('[data-pantry]').forEach(b => b.onclick = () => {
-      const id = b.dataset.pantry;
-      const i = data.pantry.indexOf(id);
-      if (i >= 0) data.pantry.splice(i, 1); else data.pantry.push(id);
-      saveData(); render();
-    });
-    $('#pfId').onchange = e => {
-      const f = foods[e.target.value];
-      $('#pfName').value = f ? f.name : '';
-      $('#pfPortion').value = f ? f.portion : '';
-      $('#pfKcal').value = f ? f.kcal : '';
-      $('#pfProt').value = f ? f.prot : '';
-    };
-    $('#btnSaveFood').onclick = () => {
-      const name = $('#pfName').value.trim();
-      const kcal = num($('#pfKcal').value), prot = num($('#pfProt').value);
-      if (!name || kcal <= 0) return;
-      let id = $('#pfId').value;
-      if (!id) id = 'c_' + uid();
-      data.customFoods[id] = Object.assign({}, data.customFoods[id] || {}, { name, portion: $('#pfPortion').value.trim() || '1 porció', kcal, prot });
-      if (!data.pantry.includes(id)) data.pantry.push(id);
-      saveData(); render();
-    };
-  }
-
   /* ========== Vista: Progrés ========== */
 
   function exerciseMetric(name, s) {
@@ -1172,34 +795,24 @@
     const v = $('#view-progres');
     const today = todayISO();
     const sessions = [...data.sessions].sort((a, b) => a.date.localeCompare(b.date));
-    const T = computeTargets();
 
     // --- Pes ---
     const avg7 = weightAvg(today, 7);
     const trend = weightTrend();
-    const sug = weightSuggestion();
     let html = `<div class="card">
       <div class="spread"><h2>⚖️ Pes corporal</h2><span class="muted">${data.profile.startWeight} → ${data.profile.targetWeight} kg</span></div>
       ${avg7 ? `<p style="margin:4px 0"><b style="font-size:1.4rem">${fmt(avg7)} kg</b> <span class="muted">mitjana 7 dies${trend != null ? ` · ${trend >= 0 ? '+' : ''}${fmt(trend)} kg/setmana` : ''}</span></p>` : ''}
       <div class="chart-wrap" id="chartWeight"></div>
-      <p class="muted" style="margin-top:8px">${esc(sug.text)}</p>
-      ${sug.delta ? `<div class="stack" style="margin-bottom:0"><button class="btn small primary" id="btnApplyAdjust">Aplicar ${sug.delta > 0 ? '+' : ''}${sug.delta} kcal/dia</button></div>` : ''}
     </div>`;
 
     // --- Tiles ---
     const weekStart = mondayOf(new Date());
     const weekSessions = new Set(sessions.filter(s => parseISO(s.date) >= weekStart).map(s => s.date)).size;
-    let adhSum = 0, adhN = 0;
-    for (let i = 0; i < 7; i++) {
-      const iso = shiftISO(today, -i);
-      if (iso < data.profile.programStart) break;
-      adhSum += dietAdherence(iso); adhN++;
-    }
-    const adh = adhN ? Math.round(adhSum / adhN * 100) : 0;
+    const lc = learnedCount();
     html += `<div class="tiles">
       <div class="tile"><div class="t-value">${weekSessions}/${data.profile.trainDays.length}</div><div class="t-label">Sessions setmana</div></div>
-      <div class="tile"><div class="t-value">${adh}%</div><div class="t-label">Dieta 7 dies</div></div>
-      <div class="tile"><div class="t-value">${T.kcal}</div><div class="t-label">kcal objectiu</div></div>
+      <div class="tile"><div class="t-value">${lc.n}/${lc.total}</div><div class="t-label">Exercicis apresos</div></div>
+      <div class="tile"><div class="t-value">${data.sessions.length}</div><div class="t-label">Sessions en total</div></div>
     </div>`;
 
     // --- Fites ---
@@ -1215,7 +828,6 @@
       html += `<div class="card empty"><span class="big">📈</span>Les gràfiques d'entrenament apareixeran quan registris sessions.</div>`;
       v.innerHTML = html;
       drawWeightChart();
-      wireProgres();
       return;
     }
 
@@ -1270,18 +882,6 @@
     const counts = {};
     for (const s of sessions) counts[s.date] = (counts[s.date] || 0) + 1;
     Charts.heatmap($('#chartHeat'), counts);
-    wireProgres();
-  }
-
-  function wireProgres() {
-    const b = $('#btnApplyAdjust');
-    if (b) b.onclick = () => {
-      const sug = weightSuggestion();
-      if (!sug.delta) return;
-      data.profile.kcalAdjust = (data.profile.kcalAdjust || 0) + sug.delta;
-      data.profile.lastAdjust = todayISO();
-      saveData(); render();
-    };
   }
 
   function drawWeightChart() {
@@ -1355,16 +955,12 @@
 
   function renderPerfil(c) {
     const pr = data.profile;
-    const T = computeTargets();
+    const w7 = weightAvg(todayISO(), 7);
     c.innerHTML = `<div class="card">
       <h2>El teu perfil</h2>
       <div class="pr-line"><span>Edat · alçada</span><span class="pr-val">${pr.age} anys · ${pr.height} cm</span></div>
       <div class="pr-line"><span>Pes inicial → objectiu</span><span class="pr-val">${fmt(pr.startWeight)} → ${fmt(pr.targetWeight)} kg</span></div>
-      <div class="pr-line"><span>Pes actual (mitjana 7 d)</span><span class="pr-val">${fmt(T.weight)} kg</span></div>
-      <div class="pr-line"><span>Metabolisme basal estimat</span><span class="pr-val">${T.bmr} kcal</span></div>
-      <div class="pr-line"><span>Manteniment estimat</span><span class="pr-val">${T.tdee} kcal</span></div>
-      <div class="pr-line"><span>Objectiu diari</span><span class="pr-val">${T.kcal} kcal · ${T.protein} g prot</span></div>
-      <div class="pr-line"><span>Ajust per bàscula acumulat</span><span class="pr-val">${pr.kcalAdjust >= 0 ? '+' : ''}${pr.kcalAdjust} kcal</span></div>
+      ${w7 ? `<div class="pr-line"><span>Pes actual (mitjana 7 d)</span><span class="pr-val">${fmt(w7)} kg</span></div>` : ''}
       <div class="pr-line"><span>Inici del programa</span><span class="pr-val">${fmtDate(pr.programStart, { day: 'numeric', month: 'short', year: 'numeric' })}</span></div>
       <div class="stack" style="margin-bottom:0"><button class="btn primary" id="btnOpenSettings">⚙️ Editar perfil i ajustos</button></div>
     </div>
@@ -2073,8 +1669,6 @@
     $('#setHeight').value = pr.height;
     $('#setStartWeight').value = pr.startWeight;
     $('#setTargetWeight').value = pr.targetWeight;
-    $('#setKcalOverride').value = pr.kcalOverride || '';
-    $('#setProtOverride').value = pr.proteinOverride || '';
     $('#setRest').value = String(data.settings.restSecs);
     $('#modal-settings').classList.remove('hidden');
   }
@@ -2089,15 +1683,12 @@
     bind('#setHeight', v => { data.profile.height = num(v) || 179; });
     bind('#setStartWeight', v => { data.profile.startWeight = num(v) || 60; });
     bind('#setTargetWeight', v => { data.profile.targetWeight = num(v) || 70; });
-    bind('#setKcalOverride', v => { data.profile.kcalOverride = num(v); });
-    bind('#setProtOverride', v => { data.profile.proteinOverride = num(v); });
     bind('#setRest', v => { data.settings.restSecs = Number(v); });
 
     $('#btnResetProgram').onclick = () => {
       if (!confirm('Reiniciar el programa? Es posa la setmana a 1 i els pesos/nivells al punt de partida. Les sessions i el pes es conserven.')) return;
       data.profile.programStart = todayISO();
-      data.program = { nextWorkout: 'A', levels: {}, loads: {}, restDone: {}, lastSummary: null };
-      data.profile.kcalAdjust = 0; data.profile.lastAdjust = '';
+      data.program = { nextWorkout: 'A', levels: {}, loads: {}, restDone: {}, lastSummary: null, pv: P.meta.version };
       saveData(); $('#modal-settings').classList.add('hidden'); showView('avui');
     };
 

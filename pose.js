@@ -70,6 +70,36 @@
       }
     },
 
+    // Flexions de costat: el colze marca la rep; el maluc s'ha de quedar a la línia espatlla-genoll
+    // (amb el genoll i no el turmell, perquè també serveixi per a les flexions amb genolls a terra)
+    pushup: {
+      view: 'side', need: ['shoulder', 'elbow', 'wrist', 'hip', 'knee'],
+      bones: [['shoulder', 'elbow'], ['elbow', 'wrist'], ['shoulder', 'hip'], ['hip', 'knee']],
+      setup: "Mòbil a terra a 1,5-2 m, DE COSTAT: que es vegin espatlla, colze, mà, maluc i genolls.",
+      metric: J => angle(J.shoulder, J.elbow, J.wrist),
+      rest: m => m > 150,
+      active: m => m < 125,
+      track(J, rep, m, t) {
+        if (m < (rep.min ?? 999)) { rep.min = m; rep.tMin = t; }
+        const dx = J.knee.x - J.shoulder.x;
+        const len = Math.hypot(dx, J.knee.y - J.shoulder.y);
+        if (Math.abs(dx) < len * 0.5) return;   // no està de costat: no es pot mirar la línia
+        const lineY = J.shoulder.y + (J.knee.y - J.shoulder.y) * (J.hip.x - J.shoulder.x) / dx;
+        const dev = (J.hip.y - lineY) / len;    // + = maluc caigut, − = cul enlaire
+        rep.dev = rep.dev == null ? dev : rep.dev * 0.7 + dev * 0.3;
+        rep.sag = Math.max(rep.sag ?? -1, rep.dev);
+        rep.pike = Math.min(rep.pike ?? 1, rep.dev);
+      },
+      judge(rep) {
+        const f = [];
+        if (rep.min > 100) f.push("Baixa més, el pit a prop del terra");
+        if (rep.sag > 0.08) f.push("Cos recte, no deixis caure el maluc");
+        else if (rep.pike < -0.1) f.push("Cos recte, no aixequis el cul");
+        if (rep.tMin - rep.t0 < 0.6) f.push("Baixa més a poc a poc");
+        return f;
+      }
+    },
+
     // Pont de glutis a terra: estirat, el maluc fa uns 135° a baix i 180° a dalt (en línia)
     bridge: {
       view: 'side', need: ['shoulder', 'hip', 'knee', 'ankle'],

@@ -20,7 +20,6 @@
   <main id="main">
     <section id="view-avui" class="view"></section>
     <section id="view-programa" class="view hidden"></section>
-    <section id="view-dieta" class="view hidden"></section>
     <section id="view-progres" class="view hidden"></section>
     <section id="view-mes" class="view hidden"></section>
   </main>
@@ -28,7 +27,6 @@
   <nav class="tabbar">
     <button class="tab active" data-view="avui"><span class="tab-ico">🏠</span>Avui</button>
     <button class="tab" data-view="programa"><span class="tab-ico">🏋️</span>Programa</button>
-    <button class="tab" data-view="dieta"><span class="tab-ico">🍽️</span>Dieta</button>
     <button class="tab" data-view="progres"><span class="tab-ico">📈</span>Progrés</button>
     <button class="tab" data-view="mes"><span class="tab-ico">☰</span>Més</button>
   </nav>
@@ -82,10 +80,6 @@
         <div class="row">
           <label class="field grow"><span>Pes inicial (kg)</span><input type="number" id="setStartWeight" step="0.1" inputmode="decimal"></label>
           <label class="field grow"><span>Pes objectiu (kg)</span><input type="number" id="setTargetWeight" step="0.1" inputmode="decimal"></label>
-        </div>
-        <div class="row">
-          <label class="field grow"><span>Calories fixes (buit = automàtic)</span><input type="number" id="setKcalOverride" step="50" inputmode="numeric" placeholder="auto"></label>
-          <label class="field grow"><span>Proteïna fixa (g)</span><input type="number" id="setProtOverride" step="5" inputmode="numeric" placeholder="auto"></label>
         </div>
         <label class="field"><span>⏲️ Descans per defecte (rutines pròpies)</span>
           <select id="setRest">

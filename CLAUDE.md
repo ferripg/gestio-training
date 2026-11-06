@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Què és
 
-PWA d'entrenador personal (programa d'entrenament, dieta, progrés) en HTML + CSS + JavaScript pur: sense frameworks, sense build, sense dependències, sense servidor. Tota la interfície, els comentaris i els missatges de commit són en **català** (els commits, sense accents: "Recomanacio", "Gestio").
+PWA d'entrenador personal (programa d'entrenament i progrés) en HTML + CSS + JavaScript pur: sense frameworks, sense build, sense dependències, sense servidor. Tota la interfície, els comentaris i els missatges de commit són en **català** (els commits, sense accents: "Recomanacio", "Gestio").
 
 ## Desenvolupament i publicació
 
@@ -17,11 +17,11 @@ PWA d'entrenador personal (programa d'entrenament, dieta, progrés) en HTML + CS
 
 Ordre de càrrega a `index.html` (importa): `program.js` → `charts.js` → `pose.js` → `app.js`.
 
-- **`program.js`** defineix `window.PROGRAM`: només dades (exercicis amb `kind` `load`/`level`/`time`, sessions A/B a `workouts`, escalfament, refredament, vídeos, fites, dieta amb catàleg d'aliments i `defaultPantry`). Canviar el programa o la dieta = editar aquest fitxer. Camps d'exercici que l'app fa servir per guiar la tècnica: `feel` (on s'ha de notar), `check` (què comprovar en un vídeo propi), `stop` (quan parar), `alt`, `perHand` (pes per manuella). `meta.techWeeks` marca les primeres setmanes del bloc com a setmanes de tècnica (`isTechWeek()` a `app.js`), amb els textos de `PROGRAM.form`.
+- **`program.js`** defineix `window.PROGRAM`: només dades (exercicis amb `kind` `load`/`level`/`time`, sessions A/B a `workouts`, escalfament, refredament, vídeos, fites). Canviar el programa = editar aquest fitxer. Els exercicis són els que l'usuari ha dit que sap fer i amb què se sent segur: no n'hi posis de nous sense preguntar-li-ho. `startLevel` fa començar un exercici `level` a un nivell que no és el primer. Camps d'exercici que l'app fa servir per guiar la tècnica: `feel` (on s'ha de notar), `check` (què comprovar en un vídeo propi), `stop` (quan parar), `alt`, `perHand` (pes per manuella). `meta.techWeeks` marca les primeres setmanes del bloc com a setmanes de tècnica (`isTechWeek()` a `app.js`), amb els textos de `PROGRAM.form`.
 - **`charts.js`** defineix `window.Charts = { lineChart, barChart, heatmap, weightChart }`: SVG fet a mà, injecta el seu propi `<style>` i llegeix els colors de les variables CSS de `style.css`.
-- **`app.js`** és un únic IIFE amb tota la lògica, dividit per seccions `/* ========== ... ========== */` (Emmagatzematge, Programa, Pes, Dieta, Navegació, una secció per vista, Entrenament actiu, Ajustos, Inici).
+- **`app.js`** és un únic IIFE amb tota la lògica, dividit per seccions `/* ========== ... ========== */` (Emmagatzematge, Programa, Pes, Navegació, una secció per vista, Entrenament actiu, Ajustos, Inici).
 
-- **`pose.js`** defineix `window.PoseCheck = { open, createTracker }`: comprovació de tècnica amb la càmera. Carrega MediaPipe Tasks Vision (versió fixada, des de jsDelivr, amb `import()` dinàmic) i el model `pose_landmarker_lite` el primer cop; és l'única part que depèn d'internet (el service worker només guarda fitxers del mateix origen). Un exercici en té si porta `pose: "squat" | "bridge" | "lateral" | "tricep"` a `program.js`; cada clau és un analitzador a `ANALYZERS` (angle principal, zones de repòs/moviment amb histèresi, `track` i `judge` que retorna els errors en català). `createTracker` no toca el DOM, i per això els analitzadors es poden provar a Node amb punts simulats. MediaPipe pot quedar-se en error (`ROI width and height must be > 0`) i fallar a cada imatge: `restartLandmarker()` el torna a crear. No s'han de passar imatges de mida 0.
+- **`pose.js`** defineix `window.PoseCheck = { open, createTracker }`: comprovació de tècnica amb la càmera. Carrega MediaPipe Tasks Vision (versió fixada, des de jsDelivr, amb `import()` dinàmic) i el model `pose_landmarker_lite` el primer cop; és l'única part que depèn d'internet (el service worker només guarda fitxers del mateix origen). Un exercici en té si porta `pose: "squat" | "pushup" | "bridge" | "lateral" | "tricep"` (ara només `squat` i `pushup` tenen exercici al programa) a `program.js`; cada clau és un analitzador a `ANALYZERS` (angle principal, zones de repòs/moviment amb histèresi, `track` i `judge` que retorna els errors en català). `createTracker` no toca el DOM, i per això els analitzadors es poden provar a Node amb punts simulats. MediaPipe pot quedar-se en error (`ROI width and height must be > 0`) i fallar a cada imatge: `restartLandmarker()` el torna a crear. No s'han de passar imatges de mida 0.
 
 ### Dades (localStorage)
 
@@ -33,13 +33,13 @@ Ordre de càrrega a `index.html` (importa): `program.js` → `charts.js` → `po
 
 ### Patró de renderització
 
-`showView(name)` → `render()` → `renderAvui/renderPrograma/renderDieta/renderProgres/renderMes`. Cada vista construeix un string HTML, fa `innerHTML` de la seva `<section id="view-...">` i després connecta els botons amb `querySelectorAll('[data-...]').forEach(b => b.onclick = ...)`. Després d'una acció es crida `saveData()` i `render()`. Els textos que venen de l'usuari s'han de passar per `esc()`. Les overlays (entrenament, editor de rutines, repàs) i els modals ja existeixen buits a `index.html` i s'omplen igual.
+`showView(name)` → `render()` → `renderAvui/renderPrograma/renderProgres/renderMes`. Cada vista construeix un string HTML, fa `innerHTML` de la seva `<section id="view-...">` i després connecta els botons amb `querySelectorAll('[data-...]').forEach(b => b.onclick = ...)`. Després d'una acció es crida `saveData()` i `render()`. Els textos que venen de l'usuari s'han de passar per `esc()`. Les overlays (entrenament, editor de rutines, repàs) i els modals ja existeixen buits a `index.html` i s'omplen igual.
 
 ### Entrenament i progressió
 
 - `startProgramWorkout(key)` crea el `draft` a partir de `PROGRAM.workouts[key]`; `finishWorkout()` el converteix en una sessió a `data.sessions` i crida `applyProgression()`, que puja pes/nivell/segons quan totes les sèries arriben al màxim de reps i alterna A/B.
 - Hi ha un únic compte enrere global (`cd`) compartit pel pastilló de descans (`#restPill`) i la pantalla sencera (`#overlay-timer`): `startCountdown`, `pauseCountdown`, `addCountdown`, `stopCountdown`. Inclou la fase de preparació de 5 s, bips i Wake Lock (`keepAwake`).
 
-### Dieta
+### Dieta (retirada)
 
-Model rebost + registre + recomanació: `allFoods()` uneix el catàleg de `program.js` amb `data.customFoods`; el registre del dia és a `data.diet[iso].log` (1 toc = 1 porció); `recommend()` proposa aliments del rebost per cobrir el que falta (proteïna primer). Els totals són sempre la suma exacta del registrat, sense estimacions inventades.
+La dieta es va treure de l'app a petició de l'usuari (no la feia servir). Les dades antigues (`data.diet`, `pantry`, `customFoods`, `combos`, camps `kcal*` del perfil) poden continuar dins del `localStorage` de l'usuari: no s'esborren, simplement no es fan servir.
