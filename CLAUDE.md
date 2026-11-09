@@ -37,7 +37,7 @@ Ordre de càrrega a `index.html` (importa): `program.js` → `charts.js` → `po
 
 ### Entrenament i progressió
 
-- `startProgramWorkout(key)` crea el `draft` a partir de `PROGRAM.workouts[key]`; `finishWorkout()` el converteix en una sessió a `data.sessions` i crida `applyProgression()`, que puja pes/nivell/segons quan totes les sèries arriben al màxim de reps i alterna A/B.
+- `startProgramWorkout(key)` crea el `draft` a partir de `PROGRAM.workouts[key]`; `finishWorkout()` el converteix en una sessió a `data.sessions` i crida `applyProgression()`, que puja pes/nivell/segons quan totes les sèries arriben al màxim de reps i alterna A/B. Abans de fer-ho guarda `data.program.undo` (draft, levels, loads, nextWorkout de l'última sessió del programa): "Reobrir la sessió" a Avui (`reopenSession`) o esborrar-la de l'històric ho desfà (`undoInfo`, `revertProgram`). Si queden sèries sense marcar, `finishWorkout` demana confirmació. A Avui es pot canviar la sessió A↔B abans de començar.
 - Hi ha un únic compte enrere global (`cd`) compartit pel pastilló de descans (`#restPill`) i la pantalla sencera (`#overlay-timer`): `startCountdown`, `pauseCountdown`, `addCountdown`, `stopCountdown`. Inclou la fase de preparació de 5 s, bips i Wake Lock (`keepAwake`).
 
 ### Dieta (retirada)

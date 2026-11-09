@@ -461,6 +461,9 @@
           <h2>✅ ${esc(wk.name)} feta avui</h2>
           <p class="muted">${esc(wk.focus)}. Ara toca descansar: aquí és on creix el múscul.</p>
           <p class="muted" style="margin-top:6px">${esc(P.finisher.name)}: ${esc(P.finisher.detail)}</p>
+          ${undoInfo(info.session.id) ? `<div class="stack" style="margin-bottom:0">
+            <button class="btn" id="btnReopen">↩️ Reobrir la sessió (l'has acabat sense voler?)</button>
+          </div>` : ''}
         </div>`;
       } else {
         html += `<div class="card" style="border-color: var(--accent)">
@@ -480,6 +483,7 @@
             <button class="btn" id="btnReview" style="flex:1">🎬 Repàs (3 min)</button>
             <button class="btn primary" id="btnStartProgram" style="flex:2">▶️ Començar</button>
           </div>
+          <button class="btn small" id="btnSwapWorkout" style="margin-top:8px">🔁 Avui vull fer la sessió ${info.key === 'A' ? 'B' : 'A'}</button>
         </div>`;
       }
     } else if (info.type === 'routine') {
@@ -563,6 +567,14 @@
 
     if ($('#btnResume')) $('#btnResume').onclick = openWorkout;
     if ($('#btnStartProgram')) $('#btnStartProgram').onclick = () => startProgramWorkout(info.key);
+    if ($('#btnSwapWorkout')) $('#btnSwapWorkout').onclick = () => {
+      data.program.nextWorkout = info.key === 'A' ? 'B' : 'A';
+      saveData(); render();
+    };
+    if ($('#btnReopen')) $('#btnReopen').onclick = () => {
+      if (!confirm('Reobrir la sessió? Tornaràs a l\'entrenament tal com el tenies i les pujades de pes d\'avui es desfan fins que el tornis a acabar.')) return;
+      reopenSession(info.session.id);
+    };
     if ($('#btnReview')) $('#btnReview').onclick = () => showReview(info.key);
     if ($('#btnStartPlanned')) $('#btnStartPlanned').onclick = () => startWorkout(info.routine);
     if ($('#btnFreeWorkout')) $('#btnFreeWorkout').onclick = () => startWorkout(null);
@@ -1010,6 +1022,8 @@
     c.querySelectorAll('[data-delsess]').forEach(b => {
       b.onclick = () => {
         if (!confirm('Eliminar aquesta sessió de l\'històric?')) return;
+        const u = undoInfo(b.dataset.delsess);
+        if (u) revertProgram(u);
         data.sessions = data.sessions.filter(s => s.id !== b.dataset.delsess);
         saveData(); render();
       };
@@ -1627,6 +1641,8 @@
   }
 
   function finishWorkout() {
+    const left = draft.entries.reduce((n, e) => n + (e.sets ? e.sets.filter(st => !st.done).length : 0), 0);
+    if (left > 0 && !confirm(`Encara et queden ${left} sèries per marcar. Segur que vols acabar i desar?`)) return;
     const entries = [];
     for (const e of draft.entries) {
       if (e.mode === 'cardio') {
@@ -1651,6 +1667,11 @@
     const session = { id: draft.id, date: draft.date, start: draft.start, end: Date.now(), pausedMs: draft.pausedMs || 0, routineName: draft.routineName, entries };
     if (draft.program) {
       session.program = draft.program;
+      // Foto d'abans per poder reobrir la sessió si s'ha acabat sense voler
+      data.program.undo = {
+        sessionId: session.id, pv: P.meta.version, draft: JSON.parse(JSON.stringify(draft)),
+        levels: { ...data.program.levels }, loads: { ...data.program.loads }, nextWorkout: data.program.nextWorkout
+      };
       applyProgression(entries, draft.program);
     }
     data.sessions.push(session);
@@ -1659,6 +1680,33 @@
     saveDraft();
     closeWorkout();
     showView('avui');
+  }
+
+  // Només es pot desfer l'última sessió del programa, i mentre el programa no hagi canviat
+  function undoInfo(sessionId) {
+    const u = data.program.undo;
+    return u && u.sessionId === sessionId && u.pv === P.meta.version && data.sessions.some(s => s.id === sessionId) ? u : null;
+  }
+
+  function revertProgram(u) {
+    data.program.levels = u.levels;
+    data.program.loads = u.loads;
+    data.program.nextWorkout = u.nextWorkout;
+    data.program.lastSummary = null;
+    data.program.undo = null;
+  }
+
+  function reopenSession(id) {
+    const u = undoInfo(id);
+    if (!u || draft) return;
+    const s = data.sessions.find(x => x.id === id);
+    revertProgram(u);
+    data.sessions = data.sessions.filter(x => x.id !== id);
+    draft = u.draft;
+    // El temps entre que la vas acabar i ara no compta
+    draft.pausedMs = (draft.pausedMs || 0) + Math.max(0, Date.now() - (s.end || Date.now()));
+    saveData(); saveDraft();
+    openWorkout();
   }
 
   /* ========== Ajustos i perfil ========== */
