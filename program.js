@@ -78,8 +78,23 @@ window.PROGRAM = {
         "Tornes a poc a poc, sense deixar caure la placa"
       ],
       stop: "Molèstia punxant a l'espatlla: no tornis tan enrere i treu 5 kg.",
-      alt: "Pec deck (Unica): els coixinets en forma de T, que tanques cap endins davant del pit.",
       mistake: "Aixecar les espatlles cap a les orelles."
+    },
+    pecdeck: {
+      name: "Pec deck (Unica)", kind: "load", startLoad: 10, step: 5,
+      muscle: "Pit", equip: "Unica · coixinets en forma de T",
+      cues: [
+        "Seu amb l'esquena al respatller i recolza els avantbraços als coixinets",
+        "Tanca els coixinets davant del pit fins que gairebé es toquin",
+        "Obre a poc a poc (2 s) fins a notar que el pit s'estira"
+      ],
+      feel: "Pit.",
+      check: [
+        "Esquena enganxada al respatller",
+        "Obres a poc a poc, sense deixar caure la placa"
+      ],
+      stop: "Molèstia a l'espatlla: no obris tant.",
+      mistake: "Obrir massa enrere o anar de pressa."
     },
     latpull: {
       name: "Jaló al pit (Unica)", kind: "load", startLoad: 20, step: 5,
@@ -256,7 +271,9 @@ window.PROGRAM = {
   videos: {
     squat:         [{ id: "ScvZnl8pqO4", title: "Esquat al banc amb manuella (Alba Prieto)" }],
     chestpress:    [{ id: "qbkrwo9fTiw", title: "Press de pit en màquina (Vitar Club)" }],
-    latpull:       [{ id: "TIZbG7Tjbf8", title: "Jaló al pit, tècnica correcta (Javi NewBody)" }],
+    pecdeck:       [{ id: "8C3pMOWkLG4", title: "Pec deck amb coixinets (AmCoder Fit)" }],
+    latpull:       [{ id: "TcYwpzaRS1I", title: "Jaló al pit en animació, de costat i d'esquena (BlueGym Animation)" },
+                    { id: "udUQ99c3oRE", title: "Jaló al pit a la màquina (Karen Zárate)" }],
     bicep:         [{ id: "uXaz4wPNaxs", title: "Curl de bíceps al coixí (Zona del Entrenador)" }],
     plank:         [{ id: "ysX1CpHKGCo", title: "Tècnica de la planxa (Dra. Isabel Junio)" }],
     crunch:        [{ id: "HLAPlJhxqEE", title: "Encongiments abdominals ben fets (El Nivel Fit)" }],
@@ -274,7 +291,7 @@ window.PROGRAM = {
 
   /* Descans després de cada sèrie (segons), per exercici */
   restSecs: {
-    squat: 90, chestpress: 90, latpull: 90, legext: 75, pushup: 75, shoulderpress: 75,
+    squat: 90, chestpress: 90, pecdeck: 60, latpull: 90, legext: 75, pushup: 75, shoulderpress: 75,
     bicep: 60, plank: 45, crunch: 45, legraise: 45, twist: 45
   },
 
@@ -286,6 +303,7 @@ window.PROGRAM = {
       items: [
         { ex: "squat",      sets: 3, reps: [10, 15] },
         { ex: "chestpress", sets: 3, reps: [8, 12] },
+        { ex: "pecdeck",    sets: 2, reps: [10, 15] },
         { ex: "latpull",    sets: 3, reps: [8, 12] },
         { ex: "bicep",      sets: 2, reps: [10, 12] },
         { ex: "plank",      sets: 2, reps: [30, 30] },
