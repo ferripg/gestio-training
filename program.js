@@ -69,7 +69,7 @@ window.PROGRAM = {
       cues: [
         "Seu amb l'esquena al respatller i agafa les nanses tipus manillar de moto, a l'altura del pit",
         "Empeny endavant fins a estirar els braços, com Superman (sense bloquejar del tot els colzes)",
-        "Torna a poc a poc (2 s) fins a notar l'estirament al pit"
+        "Torna a poc a poc (2 s) fins que les nanses quedin a un pam del pit, no més enrere"
       ],
       feel: "Pit i tríceps (darrere del braç). No a la part davantera de l'espatlla.",
       check: [
@@ -77,7 +77,7 @@ window.PROGRAM = {
         "Les espatlles no pugen cap a les orelles",
         "Tornes a poc a poc, sense deixar caure la placa"
       ],
-      stop: "Molèstia punxant a l'espatlla: no tornis tan enrere i treu 5 kg.",
+      stop: "Molèstia a l'espatlla: tornes massa enrere. Treu 5 kg.",
       mistake: "Aixecar les espatlles cap a les orelles."
     },
     pecdeck: {
@@ -86,7 +86,7 @@ window.PROGRAM = {
       cues: [
         "Seu amb l'esquena al respatller i recolza els avantbraços als coixinets",
         "Tanca els coixinets davant del pit fins que gairebé es toquin",
-        "Obre a poc a poc (2 s) fins a notar que el pit s'estira"
+        "Obre a poc a poc (2 s) fins que els colzes quedin a la línia del cos, no més enrere"
       ],
       feel: "Pit.",
       check: [
